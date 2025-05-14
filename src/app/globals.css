@@ -14,7 +14,7 @@
     --popover-foreground: 210 40% 98%; /* Light popover foreground */
 
     /* Updated primary color to an even darker, more sophisticated blue */
-    --primary: 217 50% 43%; /* Darker, slightly desaturated Blue accent */
+    --primary: 217 50% 38%; /* Even Darker, slightly desaturated Blue accent */
     --primary-foreground: 210 40% 98%; /* Light text on primary elements */
 
     --secondary: 210 10% 20%; /* Dark secondary */
@@ -24,7 +24,7 @@
     --muted-foreground: 210 20% 65%; /* Lighter muted foreground text */
 
     /* Accent for hover/focus, complements new primary */
-    --accent: 217 50% 48%; 
+    --accent: 217 50% 43%; 
     --accent-foreground: 210 40% 98%; /* Light text on accent elements */
 
     --destructive: 0 70% 55%; /* Slightly desaturated red for dark theme */
@@ -32,24 +32,26 @@
 
     --border: 210 10% 30%; /* Dark border */
     --input: 210 10% 18%; /* Darker input background for contrast */
-    --ring: 217 50% 43%; /* Darker Blue for focus rings, matches new primary */
+    --ring: 217 50% 38%; /* Darker Blue for focus rings, matches new primary */
 
-    --chart-1: 217 50% 43%; /* Use new primary for chart consistency */
+    --chart-1: 217 50% 38%; /* Use new primary for chart consistency (default) */
     --chart-2: 173 65% 45%;
     --chart-3: 30 80% 60%;
     --chart-4: 280 70% 65%;
     --chart-5: 340 75% 60%;
+    --chart-positive: 130 55% 50%; /* Green for positive chart trend */
+    --chart-negative: 0 65% 55%;   /* Red for negative chart trend */
     --radius: 0.75rem; /* Slightly larger radius for modern feel */
 
     /* Sidebar variables - specific for dark theme */
     --sidebar-background: 220 10% 8%;
     --sidebar-foreground: 210 40% 90%;
-    --sidebar-primary: 217 50% 43%; 
+    --sidebar-primary: 217 50% 38%; 
     --sidebar-primary-foreground: 210 40% 98%;
     --sidebar-accent: 210 10% 15%;
-    --sidebar-accent-foreground: 217 50% 48%; 
+    --sidebar-accent-foreground: 217 50% 43%; 
     --sidebar-border: 210 10% 25%;
-    --sidebar-ring: 217 50% 48%;
+    --sidebar-ring: 217 50% 43%;
   }
 
   /* Light theme overrides (if ever needed, but primary is dark) */
@@ -60,33 +62,35 @@
     --card-foreground: 220 10% 15%;
     --popover: 0 0% 100%;
     --popover-foreground: 220 10% 15%;
-    --primary: 217 50% 43%; /* Consistent darker blue for light theme too */
+    --primary: 217 50% 38%; /* Consistent darker blue for light theme too */
     --primary-foreground: 0 0% 100%;
     --secondary: 210 40% 91%;
     --secondary-foreground: 220 10% 15%;
     --muted: 210 40% 85%;
     --muted-foreground: 210 10% 45%;
-    --accent: 217 50% 48%; 
+    --accent: 217 50% 43%; 
     --accent-foreground: 0 0% 100%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
     --border: 210 20% 88%;
     --input: 210 30% 96%;
-    --ring: 217 50% 43%;
-    --chart-1: 217 50% 43%;
+    --ring: 217 50% 38%;
+    --chart-1: 217 50% 38%;
     --chart-2: 173 58% 39%;
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
+    --chart-positive: 130 55% 50%; 
+    --chart-negative: 0 65% 55%;
     
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 217 50% 43%;
+    --sidebar-primary: 217 50% 38%;
     --sidebar-primary-foreground: 0 0% 98%;
     --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 217 50% 48%;
+    --sidebar-accent-foreground: 217 50% 43%;
     --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217 50% 48%;
+    --sidebar-ring: 217 50% 43%;
   }
 }
 

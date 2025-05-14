@@ -14,23 +14,24 @@ import {
   Legend
 } from "recharts";
 import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
-import { format, parse } from 'date-fns';
+import { format } from 'date-fns';
 
 interface HistoricalChartProps {
   data: HistoricalDataPoint[];
   ticker: string;
 }
 
-const chartConfig = {
+// Default chart config, color will be overridden dynamically
+const defaultChartConfig = {
   price: {
     label: "Price",
-    color: "hsl(var(--chart-1))", // Ensure this uses the primary color from globals.css
+    color: "hsl(var(--chart-1))", // Default color
   },
 } satisfies ChartConfig;
 
 
 export function HistoricalChart({ data, ticker }: HistoricalChartProps) {
-  if (!data || data.length === 0) {
+  if (!data || data.length < 2) { // Need at least 2 points to compare
     return (
       <Card className="w-full shadow-xl mt-8 bg-card/80 backdrop-blur-sm">
         <CardHeader>
@@ -38,19 +39,40 @@ export function HistoricalChart({ data, ticker }: HistoricalChartProps) {
           <CardDescription>1 Year Price History</CardDescription>
         </CardHeader>
         <CardContent className="h-[400px] flex items-center justify-center">
-          <p className="text-muted-foreground">No historical data available to display.</p>
+          <p className="text-muted-foreground">Insufficient historical data available to display trend.</p>
         </CardContent>
       </Card>
     );
   }
   
-  // Data comes in as YYYY-MM-DD. For tooltip, we format it nicely.
-  // For XAxis, we'll format it to 'MMM yy'.
   const formattedData = data.map(point => ({
-    dateISO: point.date, // Keep original ISO date for reliable parsing
-    dateFormatted: format(new Date(point.date + 'T00:00:00Z'), 'MMM dd, yyyy'), // For Tooltip
+    dateISO: point.date,
+    dateFormatted: format(new Date(point.date + 'T00:00:00Z'), 'MMM dd, yyyy'),
     price: point.price,
   }));
+
+  const startPrice = formattedData[0].price;
+  const currentPrice = formattedData[formattedData.length - 1].price;
+  
+  let performanceColor = "hsl(var(--chart-1))"; // Default
+  let performanceLabel = "Price";
+
+  if (currentPrice > startPrice) {
+    performanceColor = "hsl(var(--chart-positive))";
+    performanceLabel = `Price (${ticker}) - Up YTD`;
+  } else if (currentPrice < startPrice) {
+    performanceColor = "hsl(var(--chart-negative))";
+    performanceLabel = `Price (${ticker}) - Down YTD`;
+  } else {
+     performanceLabel = `Price (${ticker}) - Flat YTD`;
+  }
+
+  const chartConfig: ChartConfig = {
+    price: {
+      label: performanceLabel,
+      color: performanceColor,
+    },
+  };
 
   return (
     <Card className="w-full shadow-xl mt-8 bg-card/80 backdrop-blur-sm">
@@ -58,34 +80,32 @@ export function HistoricalChart({ data, ticker }: HistoricalChartProps) {
         <CardTitle className="text-2xl font-semibold text-foreground/90">Historical Performance: {ticker}</CardTitle>
         <CardDescription>1 Year Price History (Mock Data)</CardDescription>
       </CardHeader>
-      <CardContent className="h-[400px] p-0 pt-4 pr-4"> {/* Adjusted padding */}
+      <CardContent className="h-[400px] p-0 pt-4 pr-4">
         <ChartContainer config={chartConfig} className="w-full h-full">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart
               data={formattedData}
               margin={{
                 top: 5,
-                right: 20, // Give space for Y-axis labels if on right, or just padding
-                left: 10,  // Give space for Y-axis labels
+                right: 20,
+                left: 10,
                 bottom: 5,
               }}
             >
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
               <XAxis 
-                dataKey="dateISO" // Use ISO date for dataKey for robust parsing
+                dataKey="dateISO"
                 tickFormatter={(isoDate) => {
                     try {
-                        // Parse the ISO date string and format it
                         return format(new Date(isoDate + 'T00:00:00Z'), 'MMM yy');
                     } catch (e) {
-                        return isoDate; // fallback if formatting fails
+                        return isoDate; 
                     }
                 }}
                 tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} 
                 axisLine={{ stroke: 'hsl(var(--border))', opacity: 0.7 }}
                 tickLine={{ stroke: 'hsl(var(--border))', opacity: 0.7 }}
-                interval="preserveStartEnd" // Show first and last tick
-                // Consider adding minTickGap or interval for denser data to avoid overlap
+                interval="preserveStartEnd"
                 minTickGap={60} 
               />
               <YAxis 
@@ -93,7 +113,7 @@ export function HistoricalChart({ data, ticker }: HistoricalChartProps) {
                 tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
                 axisLine={{ stroke: 'hsl(var(--border))', opacity: 0.7 }}
                 tickLine={{ stroke: 'hsl(var(--border))', opacity: 0.7 }}
-                domain={['auto', 'auto']} // Auto domain based on data
+                domain={['auto', 'auto']}
               />
               <ChartTooltip
                 cursor={{stroke: 'hsl(var(--accent))', strokeWidth: 1.5, strokeDasharray: '3 3'}}
@@ -101,43 +121,44 @@ export function HistoricalChart({ data, ticker }: HistoricalChartProps) {
                             className="bg-card/90 backdrop-blur-md shadow-xl border-border/70 rounded-lg"
                             indicator="line" 
                             labelFormatter={(value, payload) => {
-                                // payload[0].payload contains the data point for the hovered item
                                 if (payload && payload.length > 0 && payload[0].payload.dateFormatted) {
-                                    return payload[0].payload.dateFormatted; // Use pre-formatted date for tooltip
+                                    return payload[0].payload.dateFormatted;
                                 }
-                                return value; // Fallback
+                                return value;
                             }}
                             formatter={(value, name, props) => {
-                              // props.payload.price is the actual price for this point
                               const price = props.payload.price;
-                              return [`$${Number(price).toFixed(2)}`, name];
+                              // Use the dynamically determined label for the tooltip item name
+                              return [`$${Number(price).toFixed(2)}`, chartConfig.price.label];
                             }}
-                            itemStyle={{ color: 'hsl(var(--chart-1))' }}
+                            itemStyle={{ color: performanceColor }} // Use dynamic color for item text
                             labelStyle={{ color: 'hsl(var(--foreground))', fontWeight: 'bold' }}
                             />}
               />
               <Legend 
+                verticalAlign="top"
                 wrapperStyle={{ 
-                  color: 'hsl(var(--muted-foreground))', 
-                  paddingTop: '10px', 
-                  fontSize: '12px'
+                  color: performanceColor, // Use dynamic color
+                  paddingBottom: '20px', 
+                  fontSize: '14px',
+                  fontWeight: '500'
                 }} 
-                payload={[{ value: `Price (${ticker})`, type: 'line', id: 'price', color: 'hsl(var(--chart-1))' }]}
+                payload={[{ value: chartConfig.price.label, type: 'line', id: 'price', color: performanceColor }]}
               />
               <Line
                 type="monotone"
                 dataKey="price"
-                stroke="hsl(var(--chart-1))" // Use variable from chartConfig or globals
+                stroke={performanceColor} // Use dynamic color
                 strokeWidth={2.5}
-                dot={false} // No dots on the line itself for cleaner look
+                dot={false}
                 activeDot={{ 
                   r: 7, 
-                  fill: 'hsl(var(--primary))', 
-                  stroke: 'hsl(var(--background))', // Contrast border for the dot
+                  fill: performanceColor, // Use dynamic color
+                  stroke: 'hsl(var(--background))',
                   strokeWidth: 2.5,
                   cursor: 'pointer'
                 }}
-                name={`Price (${ticker})`} // Used by Legend and default Tooltip
+                name={chartConfig.price.label} // Used by Legend and default Tooltip
               />
             </LineChart>
           </ResponsiveContainer>
