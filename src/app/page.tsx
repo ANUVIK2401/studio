@@ -19,10 +19,10 @@ import { cn } from "@/lib/utils";
 const NewsLinkItem: React.FC<{ article: NewsArticle }> = ({ article }) => {
   const sentimentIcon = (sentiment?: Sentiment) => {
     switch (sentiment) {
-      case "Positive": return <Smile className="h-3.5 w-3.5 mr-1 text-green-500" />;
-      case "Negative": return <Frown className="h-3.5 w-3.5 mr-1 text-red-500" />;
-      case "Neutral": return <Meh className="h-3.5 w-3.5 mr-1 text-yellow-500" />;
-      default: return <Meh className="h-3.5 w-3.5 mr-1 text-muted-foreground" />;
+      case "Positive": return <Smile className="h-3.5 w-3.5 mr-1.5 text-green-400" />;
+      case "Negative": return <Frown className="h-3.5 w-3.5 mr-1.5 text-red-400" />;
+      case "Neutral": return <Meh className="h-3.5 w-3.5 mr-1.5 text-yellow-400" />;
+      default: return <Meh className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />;
     }
   };
   
@@ -36,24 +36,24 @@ const NewsLinkItem: React.FC<{ article: NewsArticle }> = ({ article }) => {
   };
 
   return (
-    <li className="mb-2.5 group">
+    <li className="mb-2.5 group transition-all duration-200 ease-in-out hover:scale-[1.02]">
       <a
         href={article.articleUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="text-sm text-primary hover:underline hover:text-primary/80 transition-colors flex items-start"
+        className="text-sm text-primary/90 hover:text-primary transition-colors flex items-start p-2 rounded-md hover:bg-primary/10"
       >
-        <LinkIcon className="h-4 w-4 mr-2 mt-0.5 shrink-0 text-muted-foreground group-hover:text-primary/90 transition-colors" />
+        <LinkIcon className="h-4 w-4 mr-2.5 mt-0.5 shrink-0 text-muted-foreground group-hover:text-primary transition-colors" />
         <div className="flex-grow">
-          <span>{article.title}</span>
-          <div className="flex items-center text-xs text-muted-foreground/80 mt-0.5">
+          <span className="font-medium">{article.title}</span>
+          <div className="flex items-center text-xs text-muted-foreground/80 mt-1">
             {sentimentIcon(article.sentiment)}
-            <span className={cn("mr-1.5", sentimentTextClass(article.sentiment))}>
+            <span className={cn("mr-2 font-medium", sentimentTextClass(article.sentiment))}>
               {article.sentiment || "N/A"}
             </span>
-            <span className="mr-1.5">&bull;</span>
-            <span>{article.source}</span>
-            <span className="mx-1.5">&bull;</span>
+            <span className="mr-2">&bull;</span>
+            <span className="truncate max-w-[100px] sm:max-w-[150px]">{article.source}</span>
+            <span className="mx-2">&bull;</span>
             <span>{formatDistanceToNow(new Date(article.publishedAt), { addSuffix: true })}</span>
           </div>
         </div>
@@ -101,10 +101,10 @@ export default function HomePage() {
       setTimeout(() => setShowFinancialSummary(true), 300);
       toast({
         variant: "default",
-        className: "bg-primary/10 border-primary/30 text-foreground", // Adjusted toast color
+        className: "bg-primary/10 border-primary/30 text-foreground",
         title: "Data Loaded Successfully",
         description: `Showing insights for ${result.data.stockData.ticker}.`,
-        action: <CheckCircle className="text-primary" />, // Adjusted icon color
+        action: <CheckCircle className="text-primary" />, 
       });
     }
   };
@@ -113,7 +113,7 @@ export default function HomePage() {
     <div className="space-y-10">
       <TickerInputForm onSubmit={handleTickerSubmit} isLoading={isLoading} />
 
-      {isLoading && <LoadingState text="Conjuring financial spells & analyzing news..." />}
+      {isLoading && <LoadingState text="Conjuring financial spells & analyzing market whispers..." />}
 
       {error && !isLoading && (
         <Alert variant="destructive" className="max-w-2xl mx-auto bg-destructive/80 text-destructive-foreground animate-in fade-in duration-500">
@@ -150,24 +150,24 @@ export default function HomePage() {
             className={`transition-all duration-700 ease-out delay-200 ${showFinancialSummary ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`}
             style={{ transformOrigin: 'top' }}
           >
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start"> {/* Added items-start */}
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
               {/* Left Column: Financial Summary */}
               <div className="lg:col-span-3">
-                <h2 className="text-3xl font-bold mb-6 flex items-center text-primary"><FileText className="mr-3 h-8 w-8"/>AI Financial Summary</h2>
+                <h2 className="text-3xl font-bold mb-6 flex items-center text-primary"><FileText className="mr-3 h-8 w-8"/>AI Financial Analysis</h2>
                 <Card className="shadow-xl bg-card/80 backdrop-blur-sm min-h-[300px]">
                   <CardHeader>
                     <CardTitle className="text-xl font-semibold text-foreground/90">
-                      Summary for {stockData.stockData.name} ({stockData.stockData.ticker})
+                      Analysis for {stockData.stockData.name} ({stockData.stockData.ticker})
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     {stockData.financialSummary ? (
-                      <p className="text-foreground/80 whitespace-pre-line leading-relaxed">{stockData.financialSummary}</p>
+                      <p className="text-foreground/85 whitespace-pre-line leading-relaxed text-base">{stockData.financialSummary}</p>
                     ) : (
                        <Alert className="bg-card/80 backdrop-blur-sm">
                         <AlertCircle className="h-4 w-4" />
-                        <AlertTitle>Summary Not Available</AlertTitle>
-                        <AlertDescription>The AI financial summary could not be generated at this time.</AlertDescription>
+                        <AlertTitle>Analysis Not Available</AlertTitle>
+                        <AlertDescription>The AI financial analysis could not be generated at this time.</AlertDescription>
                       </Alert>
                     )}
                   </CardContent>
@@ -177,9 +177,9 @@ export default function HomePage() {
               {/* Right Column: News Links */}
               <div className="lg:col-span-1">
                 <h2 className="text-2xl font-semibold mb-6 flex items-center text-primary"><NewspaperIcon className="mr-2 h-7 w-7"/>Recent News</h2>
-                 <Card className="shadow-lg bg-card/70 backdrop-blur-sm p-4 max-h-[450px] lg:max-h-[calc(100%_-_2.5rem)] overflow-y-auto"> {/* Adjusted max-h */}
+                 <Card className="shadow-lg bg-card/70 backdrop-blur-sm p-3 max-h-[450px] lg:max-h-[calc(100%_-_2.5rem)] overflow-y-auto">
                   {stockData.newsArticles.length > 0 ? (
-                    <ul className="space-y-3">
+                    <ul className="space-y-1">
                       {stockData.newsArticles.map((article) => (
                         <NewsLinkItem key={article.id} article={article} />
                       ))}
