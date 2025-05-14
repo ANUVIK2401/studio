@@ -1,13 +1,16 @@
 "use server";
 
-import type { StockVoyantData, ServerActionResponse, NewsArticle, StockData, HistoricalDataPoint } from "./types";
+import type { StockVoyantData, ServerActionResponse, NewsArticle, StockData, HistoricalDataPoint, Sentiment } from "./types";
 import { summarizeNewsArticle } from "@/ai/flows/summarize-news-article";
 import { generateFinancialSummary, type GenerateFinancialSummaryInput } from "@/ai/flows/generate-financial-summary-flow";
-import { subDays, parseISO } from 'date-fns';
+import { analyzeNewsSentiment } from "@/ai/flows/analyze-news-sentiment-flow";
+import { subDays, parseISO, formatISO } from 'date-fns';
+import NewsAPI from 'newsapi';
 
+// Ensure NEWSAPI_KEY is loaded from .env
+const newsapi = process.env.NEWSAPI_KEY ? new NewsAPI(process.env.NEWSAPI_KEY) : null;
 
-// MOCK DATA AND FUNCTIONS
-
+// MOCK STOCK DATA (Real-time aspect is complex for frontend prototype)
 const MOCK_STOCKS: Record<string, { data: StockData, historical: HistoricalDataPoint[] }> = {
   "AAPL": {
     data: {
@@ -83,150 +86,14 @@ const MOCK_STOCKS: Record<string, { data: StockData, historical: HistoricalDataP
   }
 };
 
-const MOCK_NEWS: Record<string, Omit<NewsArticle, 'id' | 'summary' | 'imageUrl'>[]> = {
-  "AAPL": [
-    {
-      title: "Apple Vision Pro Sees Strong Pre-Orders",
-      source: "TechNewsDaily",
-      articleUrl: "https://placehold.co/600x400?text=Vision+Pro+Success",
-      articleContent: "Apple's new Vision Pro headset is reportedly seeing strong pre-order numbers, exceeding initial analyst expectations. This early demand signals potential for a new major product category for Apple, though long-term success will depend on app ecosystem and broader consumer adoption. Some concerns remain about the high price point.",
-      publishedAt: new Date(Date.now() - 86400000 * 2).toISOString(), // 2 days ago
-    },
-    {
-      title: "iPhone 16 Supply Chain Ramping Up",
-      source: "SupplyChainWeekly",
-      articleUrl: "https://placehold.co/600x400?text=iPhone+16+Production",
-      articleContent: "Key Apple suppliers are increasing production capacity for components expected to be used in the upcoming iPhone 16. This move indicates Apple is on track for its usual fall launch schedule. The new models are rumored to feature enhanced AI capabilities and camera improvements.",
-      publishedAt: new Date(Date.now() - 86400000 * 5).toISOString(), // 5 days ago
-    },
-    {
-      title: "Apple Faces Antitrust Scrutiny in Europe Over App Store Policies",
-      source: "GlobalRegulatorNews",
-      articleUrl: "https://placehold.co/600x400?text=Apple+EU+Antitrust",
-      articleContent: "European regulators are intensifying their investigation into Apple's App Store policies, particularly concerning commission rates and restrictions on alternative payment systems. This could lead to significant fines or forced changes to Apple's business model in the region.",
-      publishedAt: new Date(Date.now() - 86400000 * 10).toISOString(), // 10 days ago
-    },
-     {
-      title: "Analysts Bullish on Apple Services Growth",
-      source: "MarketWatch",
-      articleUrl: "https://placehold.co/600x400?text=Apple+Services+Growth",
-      articleContent: "Several financial analysts have reiterated their buy ratings for Apple stock, citing continued strong growth in its services division. Subscription services like Apple Music, iCloud, and Apple TV+ are seen as key drivers of recurring revenue.",
-      publishedAt: new Date(Date.now() - 86400000 * 15).toISOString(), // 15 days ago
-    },
-    {
-      title: "Apple Invests Further in AI Research and Development",
-      source: "AIInnovationHub",
-      articleUrl: "https://placehold.co/600x400?text=Apple+AI+Investment",
-      articleContent: "Apple is reportedly significantly increasing its investment in artificial intelligence research and development. This includes hiring top AI talent and acquiring smaller AI startups, signaling a strategic push to integrate more advanced AI features across its product lines.",
-      publishedAt: new Date(Date.now() - 86400000 * 25).toISOString(), // 25 days ago
-    },
-     {
-      title: "Older Apple News Not For Summary",
-      source: "ArchiveNews",
-      articleUrl: "https://placehold.co/600x400?text=Apple+Old+News",
-      articleContent: "This is an older news article from more than a month ago and should not be included in the financial summary. It discusses past product launches.",
-      publishedAt: new Date(Date.now() - 86400000 * 40).toISOString(), // 40 days ago
-    }
-  ],
-  "GOOGL": [
-    // ... (similar structure with 5-6 articles, varying dates, including some older than 1 month)
-    {
-      title: "Google AI Unveils New Large Language Model 'Gemini 2.0'",
-      source: "AI Times",
-      articleUrl: "https://placehold.co/600x400?text=GOOGL+AI+LLM",
-      articleContent: "Google AI has announced 'Gemini 2.0', its next-generation large language model, promising enhanced reasoning and coding capabilities. This move aims to compete directly with OpenAI's latest models and solidify Google's position in the AI race. Early benchmarks show impressive performance.",
-      publishedAt: new Date(Date.now() - 86400000 * 3).toISOString(),
-    },
-    {
-      title: "Alphabet's Waymo Expands Robotaxi Service",
-      source: "FutureTransport",
-      articleUrl: "https://placehold.co/600x400?text=Waymo+Expansion",
-      articleContent: "Waymo, Alphabet's self-driving car unit, is expanding its commercial robotaxi service to two new cities. This indicates growing confidence in the technology and a push towards wider commercialization, though regulatory hurdles and public acceptance remain key challenges.",
-      publishedAt: new Date(Date.now() - 86400000 * 8).toISOString(),
-    },
-    {
-      title: "Google Cloud Revenue Growth Slows Slightly, Concerns Analysts",
-      source: "CloudComputingReport",
-      articleUrl: "https://placehold.co/600x400?text=Google+Cloud+Revenue",
-      articleContent: "While Google Cloud continues to grow, its latest quarterly revenue figures showed a slight deceleration in growth rate compared to previous periods. Some analysts express concern this might indicate intensifying competition from AWS and Azure.",
-      publishedAt: new Date(Date.now() - 86400000 * 12).toISOString(),
-    },
-    {
-      title: "Pixel 9 Series to Feature Tensor G4 Chip and AI Focus",
-      source: "TechLeaks",
-      articleUrl: "https://placehold.co/600x400?text=Pixel+9+Tensor+G4",
-      articleContent: "Leaks suggest the upcoming Google Pixel 9 series will be powered by the new Tensor G4 chip, with a strong emphasis on on-device AI features. Google aims to leverage its AI prowess to differentiate its hardware offerings.",
-      publishedAt: new Date(Date.now() - 86400000 * 20).toISOString(),
-    },
-    {
-      title: "YouTube Ad Revenue Up, Shorts Monetization Improving",
-      source: "DigitalMediaWorld",
-      articleUrl: "https://placehold.co/600x400?text=YouTube+Ads+Shorts",
-      articleContent: "Google reported an increase in YouTube advertising revenue, with promising signs of improved monetization for its short-form video platform, YouTube Shorts. This is crucial for competing with TikTok and Instagram Reels.",
-      publishedAt: new Date(Date.now() - 86400000 * 28).toISOString(),
-    },
-    {
-      title: "Google Settles Old Privacy Lawsuit",
-      source: "LegalNews",
-      articleUrl: "https://placehold.co/600x400?text=Google+Old+Lawsuit",
-      articleContent: "This is an older news article about Google settling a privacy lawsuit that concluded over a month ago. It should not be part of the current financial summary.",
-      publishedAt: new Date(Date.now() - 86400000 * 50).toISOString(),
-    }
-  ],
-   "MSFT": [
-    // ... (similar structure with 5-6 articles, varying dates, including some older than 1 month)
-    {
-      title: "Microsoft Q3 Earnings Beat Expectations, Azure Growth Strong",
-      source: "FinancialPost",
-      articleUrl: "https://placehold.co/600x400?text=MSFT+Q3+Earnings",
-      articleContent: "Microsoft reported strong Q3 earnings, surpassing analyst expectations, largely driven by continued robust growth in its Azure cloud computing division. The company's AI initiatives, particularly Copilot integrations, are also starting to show positive revenue impact.",
-      publishedAt: new Date(Date.now() - 86400000 * 4).toISOString(),
-    },
-    {
-      title: "Microsoft Completes Acquisition of Gaming Studio 'GameMakers Inc.'",
-      source: "GamingIndustryNews",
-      articleUrl: "https://placehold.co/600x400?text=MSFT+Acquisition",
-      articleContent: "Microsoft has finalized its acquisition of 'GameMakers Inc.', a prominent game development studio. This move is expected to bolster Xbox Game Studios' portfolio and enhance content for the Game Pass subscription service. Regulatory approval was the final step.",
-      publishedAt: new Date(Date.now() - 86400000 * 9).toISOString(),
-    },
-    {
-      title: "Copilot AI Expanding to More Microsoft 365 Services",
-      source: "EnterpriseTech",
-      articleUrl: "https://placehold.co/600x400?text=Copilot+Expansion",
-      articleContent: "Microsoft announced plans to integrate its Copilot AI assistant into additional Microsoft 365 services, including SharePoint and Microsoft Teams Premium. The company is betting heavily on generative AI to drive productivity and enterprise software sales.",
-      publishedAt: new Date(Date.now() - 86400000 * 14).toISOString(),
-    },
-    {
-      title: "Microsoft Increases Investment in Renewable Energy for Data Centers",
-      source: "SustainableTech",
-      articleUrl: "https://placehold.co/600x400?text=MSFT+Renewable+Energy",
-      articleContent: "Microsoft is significantly increasing its investment in renewable energy projects to power its global network of data centers. This aligns with its sustainability goals and aims to address the growing energy demands of AI workloads.",
-      publishedAt: new Date(Date.now() - 86400000 * 22).toISOString(),
-    },
-    {
-      title: "New Surface Laptop 7 and Surface Pro 10 Announced",
-      source: "GadgetReview",
-      articleUrl: "https://placehold.co/600x400?text=Surface+Launch",
-      articleContent: "Microsoft unveiled its latest Surface Laptop 7 and Surface Pro 10 devices, featuring new Intel Core Ultra processors and dedicated NPUs for enhanced AI performance. These devices are aimed at both consumers and professionals.",
-      publishedAt: new Date(Date.now() - 86400000 * 29).toISOString(),
-    },
-    {
-      title: "Microsoft's Old Partnership with Nokia - A Look Back",
-      source: "TechHistory",
-      articleUrl: "https://placehold.co/600x400?text=MSFT+Nokia+History",
-      articleContent: "This article is a historical piece about Microsoft's partnership with Nokia from many years ago. It's older than one month and not relevant for the current financial summary.",
-      publishedAt: new Date(Date.now() - 86400000 * 60).toISOString(),
-    }
-  ]
-};
-
 async function mockFetchStockData(ticker: string): Promise<{ data: StockData, historical: HistoricalDataPoint[] } | null> {
-  await new Promise(resolve => setTimeout(resolve, 800)); // Simulate network delay
+  await new Promise(resolve => setTimeout(resolve, 300)); // Shorter delay for stock data
   if (MOCK_STOCKS[ticker]) {
     const stock = MOCK_STOCKS[ticker];
-    const priceChange = (Math.random() - 0.5) * (stock.data.price * 0.01);
-    const newPrice = parseFloat((stock.data.price + priceChange).toFixed(2));
-    const prevClose = stock.data.price + (Math.random() -0.5) * (stock.data.price * 0.005);
+    // Simulate minor price fluctuation
+    const priceFluctuation = (Math.random() - 0.5) * (stock.data.price * 0.005); // Max 0.5% change
+    const newPrice = parseFloat((stock.data.price + priceFluctuation).toFixed(2));
+    const prevClose = stock.data.price; // Use previous mock price as a pseudo previous close
     const newAbsChange = parseFloat((newPrice - prevClose).toFixed(2));
     const newChangePercent = parseFloat(((newAbsChange / prevClose) * 100).toFixed(2));
     
@@ -244,16 +111,80 @@ async function mockFetchStockData(ticker: string): Promise<{ data: StockData, hi
   return null;
 }
 
-async function mockFetchNews(ticker: string): Promise<NewsArticle[]> {
-  await new Promise(resolve => setTimeout(resolve, 700)); 
-  const newsItems = MOCK_NEWS[ticker] || [];
-  const sortedNews = newsItems.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
-  return sortedNews.map((item, index) => ({
-    ...item,
-    id: `${ticker}-news-${index + 1}`,
-    imageUrl: `https://placehold.co/300x200.png?text=${encodeURIComponent(ticker)}+News+${index+1}`,
-  }));
+async function fetchRealNews(companyName: string, ticker: string): Promise<NewsArticle[]> {
+  if (!newsapi) {
+    console.warn("NewsAPI key not configured. Serving mock news for development.");
+    // Fallback to mock news if API key is missing
+    return (MOCK_NEWS[ticker] || []).map((item, index) => ({
+        ...item,
+        id: `${ticker}-news-${index + 1}`,
+        imageUrl: `https://placehold.co/300x200.png?text=${encodeURIComponent(ticker)}+News+${index+1}`,
+        sentiment: "Unknown" as Sentiment,
+    })).slice(0,6);
+  }
+
+  try {
+    // Fetch news for the company name, more reliable than just ticker for general news
+    // NewsAPI 'q' parameter can be company name or ticker. Using company name might yield broader results.
+    // Sorting by relevancy or publishedAt might be good. NewsAPI defaults to publishedAt for 'everything'.
+    const thirtyDaysAgo = subDays(new Date(), 30);
+    const response = await newsapi.v2.everything({
+      q: `"${companyName}" OR ${ticker}`, // Search for company name or ticker
+      from: formatISO(thirtyDaysAgo, { representation: 'date' }), // Search from 30 days ago
+      sortBy: 'relevancy', // Sort by relevancy, then publishedAt if relevancy is same
+      language: 'en',
+      pageSize: 15, // Fetch a bit more to allow filtering for quality/relevance if needed
+    });
+
+    if (response.status === "ok") {
+      return response.articles
+        .slice(0, 6) // Take top 5-6 articles
+        .map((article, index) => ({
+          id: `${ticker}-news-${article.source?.id || 'api'}-${index}`,
+          title: article.title || "No Title",
+          source: article.source?.name || "Unknown Source",
+          articleUrl: article.url || "#",
+          articleContent: article.content || article.description || "No Content Available",
+          publishedAt: article.publishedAt || new Date().toISOString(),
+          imageUrl: article.urlToImage || `https://placehold.co/300x200.png?text=${encodeURIComponent(ticker)}+News`,
+          sentiment: "Unknown" as Sentiment, // Placeholder, will be filled by AI
+        }));
+    } else {
+      console.error("NewsAPI error:", response);
+      return []; // Return empty if API error
+    }
+  } catch (error) {
+    console.error("Failed to fetch real news:", error);
+    return []; // Return empty on exception
+  }
 }
+
+
+// Mock news data if NewsAPI is not available or for quick testing
+const MOCK_NEWS: Record<string, Omit<NewsArticle, 'id' | 'summary' | 'imageUrl' | 'sentiment'>[]> = {
+  "AAPL": [
+    { title: "Apple Vision Pro Sees Strong Pre-Orders", source: "TechNewsDaily", articleUrl: "#", articleContent: "Apple's new Vision Pro headset is reportedly seeing strong pre-order numbers...", publishedAt: new Date(Date.now() - 86400000 * 2).toISOString() },
+    { title: "iPhone 16 Supply Chain Ramping Up", source: "SupplyChainWeekly", articleUrl: "#", articleContent: "Key Apple suppliers are increasing production capacity...", publishedAt: new Date(Date.now() - 86400000 * 5).toISOString() },
+    { title: "Apple Faces Antitrust Scrutiny in Europe", source: "GlobalRegulatorNews", articleUrl: "#", articleContent: "European regulators are intensifying their investigation...", publishedAt: new Date(Date.now() - 86400000 * 10).toISOString() },
+    { title: "Analysts Bullish on Apple Services Growth", source: "MarketWatch", articleUrl: "#", articleContent: "Several financial analysts have reiterated their buy ratings for Apple stock...", publishedAt: new Date(Date.now() - 86400000 * 15).toISOString() },
+    { title: "Apple Invests Further in AI R&D", source: "AIInnovationHub", articleUrl: "#", articleContent: "Apple is reportedly significantly increasing its investment...", publishedAt: new Date(Date.now() - 86400000 * 25).toISOString() },
+  ],
+  "GOOGL": [
+    { title: "Google AI Unveils 'Gemini 2.0'", source: "AI Times", articleUrl: "#", articleContent: "Google AI has announced 'Gemini 2.0', its next-generation large language model...", publishedAt: new Date(Date.now() - 86400000 * 3).toISOString() },
+    { title: "Alphabet's Waymo Expands Robotaxi Service", source: "FutureTransport", articleUrl: "#", articleContent: "Waymo, Alphabet's self-driving car unit, is expanding...", publishedAt: new Date(Date.now() - 86400000 * 8).toISOString() },
+    { title: "Google Cloud Revenue Growth Slows Slightly", source: "CloudComputingReport", articleUrl: "#", articleContent: "While Google Cloud continues to grow, its latest quarterly revenue figures showed a slight deceleration...", publishedAt: new Date(Date.now() - 86400000 * 12).toISOString() },
+    { title: "Pixel 9 Series to Feature Tensor G4 Chip", source: "TechLeaks", articleUrl: "#", articleContent: "Leaks suggest the upcoming Google Pixel 9 series will be powered by the new Tensor G4 chip...", publishedAt: new Date(Date.now() - 86400000 * 20).toISOString() },
+    { title: "YouTube Ad Revenue Up, Shorts Monetization Improving", source: "DigitalMediaWorld", articleUrl: "#", articleContent: "Google reported an increase in YouTube advertising revenue...", publishedAt: new Date(Date.now() - 86400000 * 28).toISOString() },
+  ],
+  "MSFT": [
+    { title: "Microsoft Q3 Earnings Beat Expectations", source: "FinancialPost", articleUrl: "#", articleContent: "Microsoft reported strong Q3 earnings, surpassing analyst expectations...", publishedAt: new Date(Date.now() - 86400000 * 4).toISOString() },
+    { title: "Microsoft Completes Acquisition of 'GameMakers Inc.'", source: "GamingIndustryNews", articleUrl: "#", articleContent: "Microsoft has finalized its acquisition of 'GameMakers Inc.'...", publishedAt: new Date(Date.now() - 86400000 * 9).toISOString() },
+    { title: "Copilot AI Expanding to More Microsoft 365 Services", source: "EnterpriseTech", articleUrl: "#", articleContent: "Microsoft announced plans to integrate its Copilot AI assistant into additional Microsoft 365 services...", publishedAt: new Date(Date.now() - 86400000 * 14).toISOString() },
+    { title: "Microsoft Increases Investment in Renewable Energy", source: "SustainableTech", articleUrl: "#", articleContent: "Microsoft is significantly increasing its investment in renewable energy projects...", publishedAt: new Date(Date.now() - 86400000 * 22).toISOString() },
+    { title: "New Surface Laptop 7 and Surface Pro 10 Announced", source: "GadgetReview", articleUrl: "#", articleContent: "Microsoft unveiled its latest Surface Laptop 7 and Surface Pro 10 devices...", publishedAt: new Date(Date.now() - 86400000 * 29).toISOString() },
+  ]
+};
+
 
 export async function fetchStockDataAndNews(ticker: string): Promise<ServerActionResponse> {
   try {
@@ -262,76 +193,67 @@ export async function fetchStockDataAndNews(ticker: string): Promise<ServerActio
       return { error: `Ticker symbol "${ticker}" not found or not supported. Supported: AAPL, GOOGL, MSFT` };
     }
 
-    const stockInfoPromise = mockFetchStockData(upperTicker);
-    const allNewsPromise = mockFetchNews(upperTicker);
-
-    const [stockDetails, allRawNewsArticles] = await Promise.all([stockInfoPromise, allNewsPromise]);
+    const stockDetailsPromise = mockFetchStockData(upperTicker);
+    const stockDetails = await stockDetailsPromise;
 
     if (!stockDetails) {
       return { error: `Failed to fetch data for ticker "${ticker}".` };
     }
-
-    // Filter news for the last 30 days for financial summary
-    const thirtyDaysAgo = subDays(new Date(), 30);
-    const recentNewsForSummary = allRawNewsArticles.filter(article => 
-      parseISO(article.publishedAt) >= thirtyDaysAgo
-    );
     
-    // Prepare input for financial summary flow
-    const financialSummaryInput: GenerateFinancialSummaryInput = {
-      stockTicker: upperTicker,
-      companyName: stockDetails.data.name,
-      newsArticles: recentNewsForSummary.map(article => ({
-        title: article.title,
-        articleContent: article.articleContent, // Genkit flow will truncate if necessary
-        publishedAt: article.publishedAt,
-        source: article.source,
-      })),
-    };
+    const fetchedNewsArticles = await fetchRealNews(stockDetails.data.name, upperTicker);
 
+    // Filter news for the last 30 days for financial summary (NewsAPI 'from' parameter already does this)
+    const recentNewsForSummaryInput = fetchedNewsArticles.map(article => ({
+      title: article.title,
+      articleContent: article.articleContent,
+      publishedAt: article.publishedAt,
+      source: article.source,
+    }));
+    
     let financialSummaryText = "Financial summary based on recent news is currently unavailable.";
-    if (financialSummaryInput.newsArticles.length > 0) {
+    if (recentNewsForSummaryInput.length > 0) {
         try {
-            const summaryResult = await generateFinancialSummary(financialSummaryInput);
+            const summaryResult = await generateFinancialSummary({
+                stockTicker: upperTicker,
+                companyName: stockDetails.data.name,
+                newsArticles: recentNewsForSummaryInput,
+            });
             financialSummaryText = summaryResult.summary;
         } catch (genSummaryError) {
             console.error(`Failed to generate financial summary for ${upperTicker}:`, genSummaryError);
-            // Keep default message or provide more specific error
         }
     } else {
         financialSummaryText = `No news articles found for ${upperTicker} in the last 30 days to generate a financial summary.`;
     }
 
-
-    // Summarize all fetched articles (up to 6 for display cards)
-    const articlesForDisplay = allRawNewsArticles.slice(0, 6);
-    const summarizedArticlesForDisplay: NewsArticle[] = [];
-
-    for (const article of articlesForDisplay) {
+    // Process articles for display: individual summaries and sentiment analysis
+    const processedArticlesForDisplay: NewsArticle[] = [];
+    const articleProcessingPromises = fetchedNewsArticles.slice(0, 6).map(async (article) => {
+      let summarizedArticle = { ...article, summary: "AI summary currently unavailable.", sentiment: "Unknown" as Sentiment };
       try {
-        const indivSummaryResult = await summarizeNewsArticle({
-          articleTitle: article.title,
-          articleUrl: article.articleUrl,
-          articleContent: article.articleContent,
-          stockTicker: upperTicker,
-        });
-        summarizedArticlesForDisplay.push({
-          ...article,
-          summary: indivSummaryResult.summary,
-        });
-      } catch (summaryError) {
-        console.error(`Failed to summarize article "${article.title}":`, summaryError);
-        summarizedArticlesForDisplay.push({
-          ...article,
-          summary: "AI summary currently unavailable for this article.",
-        });
+        const [summaryResult, sentimentResult] = await Promise.all([
+          summarizeNewsArticle({
+            articleTitle: article.title,
+            articleUrl: article.articleUrl,
+            articleContent: article.articleContent, // Full content for summary
+            stockTicker: upperTicker,
+          }),
+          analyzeNewsSentiment({ articleContent: article.articleContent.substring(0,1000) }) // Use a snippet for sentiment for brevity
+        ]);
+        summarizedArticle.summary = summaryResult.summary;
+        summarizedArticle.sentiment = sentimentResult.sentiment;
+      } catch (processingError) {
+        console.error(`Error processing article "${article.title}":`, processingError);
       }
-    }
+      return summarizedArticle;
+    });
+
+    processedArticlesForDisplay.push(...await Promise.all(articleProcessingPromises));
     
     const responseData: StockVoyantData = {
       stockData: stockDetails.data,
       historicalData: stockDetails.historical,
-      newsArticles: summarizedArticlesForDisplay, // These are the ones with individual summaries for cards (if we use cards)
+      newsArticles: processedArticlesForDisplay, 
       financialSummary: financialSummaryText,
     };
 

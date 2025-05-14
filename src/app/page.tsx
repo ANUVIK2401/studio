@@ -1,35 +1,66 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import type { StockVoyantData, ServerActionResponse, NewsArticle } from "@/lib/types";
+import { useState } from "react";
+import type { StockVoyantData, ServerActionResponse, NewsArticle, Sentiment } from "@/lib/types";
 import { fetchStockDataAndNews } from "@/lib/actions";
 import { TickerInputForm } from "@/components/stock-voyant/TickerInputForm";
 import { StockMetricsCard } from "@/components/stock-voyant/StockMetricsCard";
 import { HistoricalChart } from "@/components/stock-voyant/HistoricalChart";
-// import { NewsArticleCard } from "@/components/stock-voyant/NewsArticleCard"; // We'll use a simpler list
 import { LoadingState } from "@/components/shared/LoadingState";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { AlertCircle, CheckCircle, BarChartBig, NewspaperIcon, FileText, Link as LinkIcon } from "lucide-react";
+import { AlertCircle, CheckCircle, BarChartBig, NewspaperIcon, FileText, Link as LinkIcon, Smile, Meh, Frown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
 import { formatDistanceToNow } from 'date-fns';
+import { cn } from "@/lib/utils";
 
-// Simple component for news links
-const NewsLinkItem: React.FC<{ article: NewsArticle }> = ({ article }) => (
-  <li className="mb-2">
-    <a
-      href={article.articleUrl}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="text-sm text-primary hover:underline hover:text-primary/80 transition-colors flex items-start group"
-    >
-      <LinkIcon className="h-4 w-4 mr-2 mt-0.5 shrink-0 text-muted-foreground group-hover:text-primary/90 transition-colors" />
-      <span>{article.title} <span className="text-xs text-muted-foreground/70">({article.source}, {formatDistanceToNow(new Date(article.publishedAt), { addSuffix: true })})</span></span>
-    </a>
-  </li>
-);
+// Simple component for news links with sentiment
+const NewsLinkItem: React.FC<{ article: NewsArticle }> = ({ article }) => {
+  const sentimentIcon = (sentiment?: Sentiment) => {
+    switch (sentiment) {
+      case "Positive": return <Smile className="h-3.5 w-3.5 mr-1 text-green-500" />;
+      case "Negative": return <Frown className="h-3.5 w-3.5 mr-1 text-red-500" />;
+      case "Neutral": return <Meh className="h-3.5 w-3.5 mr-1 text-yellow-500" />;
+      default: return <Meh className="h-3.5 w-3.5 mr-1 text-muted-foreground" />;
+    }
+  };
+  
+  const sentimentTextClass = (sentiment?: Sentiment) => {
+    switch (sentiment) {
+      case "Positive": return "text-green-400";
+      case "Negative": return "text-red-400";
+      case "Neutral": return "text-yellow-400";
+      default: return "text-muted-foreground";
+    }
+  };
+
+  return (
+    <li className="mb-2.5 group">
+      <a
+        href={article.articleUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-sm text-primary hover:underline hover:text-primary/80 transition-colors flex items-start"
+      >
+        <LinkIcon className="h-4 w-4 mr-2 mt-0.5 shrink-0 text-muted-foreground group-hover:text-primary/90 transition-colors" />
+        <div className="flex-grow">
+          <span>{article.title}</span>
+          <div className="flex items-center text-xs text-muted-foreground/80 mt-0.5">
+            {sentimentIcon(article.sentiment)}
+            <span className={cn("mr-1.5", sentimentTextClass(article.sentiment))}>
+              {article.sentiment || "N/A"}
+            </span>
+            <span className="mr-1.5">&bull;</span>
+            <span>{article.source}</span>
+            <span className="mx-1.5">&bull;</span>
+            <span>{formatDistanceToNow(new Date(article.publishedAt), { addSuffix: true })}</span>
+          </div>
+        </div>
+      </a>
+    </li>
+  );
+};
 
 
 export default function HomePage() {
@@ -70,10 +101,10 @@ export default function HomePage() {
       setTimeout(() => setShowFinancialSummary(true), 300);
       toast({
         variant: "default",
-        className: "bg-green-500/10 border-green-500/30 text-foreground",
+        className: "bg-primary/10 border-primary/30 text-foreground", // Adjusted toast color
         title: "Data Loaded Successfully",
         description: `Showing insights for ${result.data.stockData.ticker}.`,
-        action: <CheckCircle className="text-green-500" />,
+        action: <CheckCircle className="text-primary" />, // Adjusted icon color
       });
     }
   };
@@ -82,7 +113,7 @@ export default function HomePage() {
     <div className="space-y-10">
       <TickerInputForm onSubmit={handleTickerSubmit} isLoading={isLoading} />
 
-      {isLoading && <LoadingState text="Conjuring financial spells..." />}
+      {isLoading && <LoadingState text="Conjuring financial spells & analyzing news..." />}
 
       {error && !isLoading && (
         <Alert variant="destructive" className="max-w-2xl mx-auto bg-destructive/80 text-destructive-foreground animate-in fade-in duration-500">
@@ -107,7 +138,7 @@ export default function HomePage() {
             className={`transition-all duration-700 ease-out ${showMetrics ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`}
             style={{ transformOrigin: 'top' }}
           >
-            <h2 className="text-3xl font-bold mb-6 flex items-center text-primary/90"><BarChartBig className="mr-3 h-8 w-8"/>Key Metrics &amp; Performance</h2>
+            <h2 className="text-3xl font-bold mb-6 flex items-center text-primary"><BarChartBig className="mr-3 h-8 w-8"/>Key Metrics &amp; Performance</h2>
             <StockMetricsCard data={stockData.stockData} />
             <HistoricalChart data={stockData.historicalData} ticker={stockData.stockData.ticker} />
           </section>
@@ -119,10 +150,10 @@ export default function HomePage() {
             className={`transition-all duration-700 ease-out delay-200 ${showFinancialSummary ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`}
             style={{ transformOrigin: 'top' }}
           >
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start"> {/* Added items-start */}
               {/* Left Column: Financial Summary */}
               <div className="lg:col-span-3">
-                <h2 className="text-3xl font-bold mb-6 flex items-center text-primary/90"><FileText className="mr-3 h-8 w-8"/>AI Financial Summary</h2>
+                <h2 className="text-3xl font-bold mb-6 flex items-center text-primary"><FileText className="mr-3 h-8 w-8"/>AI Financial Summary</h2>
                 <Card className="shadow-xl bg-card/80 backdrop-blur-sm min-h-[300px]">
                   <CardHeader>
                     <CardTitle className="text-xl font-semibold text-foreground/90">
@@ -145,8 +176,8 @@ export default function HomePage() {
 
               {/* Right Column: News Links */}
               <div className="lg:col-span-1">
-                <h2 className="text-2xl font-semibold mb-6 flex items-center text-foreground/90"><NewspaperIcon className="mr-2 h-7 w-7 text-primary"/>Recent News</h2>
-                 <Card className="shadow-lg bg-card/70 backdrop-blur-sm p-4 max-h-[450px] overflow-y-auto">
+                <h2 className="text-2xl font-semibold mb-6 flex items-center text-primary"><NewspaperIcon className="mr-2 h-7 w-7"/>Recent News</h2>
+                 <Card className="shadow-lg bg-card/70 backdrop-blur-sm p-4 max-h-[450px] lg:max-h-[calc(100%_-_2.5rem)] overflow-y-auto"> {/* Adjusted max-h */}
                   {stockData.newsArticles.length > 0 ? (
                     <ul className="space-y-3">
                       {stockData.newsArticles.map((article) => (

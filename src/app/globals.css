@@ -13,7 +13,8 @@
     --popover: 220 10% 14%; /* Dark popover */
     --popover-foreground: 210 40% 98%; /* Light popover foreground */
 
-    --primary: 207 75% 55%; /* Brighter Blue accent for dark theme */
+    /* Updated primary color to a darker, more sophisticated blue */
+    --primary: 217 60% 50%; /* Darker Blue accent */
     --primary-foreground: 210 40% 98%; /* Light text on primary elements */
 
     --secondary: 210 10% 20%; /* Dark secondary */
@@ -22,7 +23,8 @@
     --muted: 210 10% 25%; /* Dark muted */
     --muted-foreground: 210 20% 65%; /* Lighter muted foreground text */
 
-    --accent: 207 70% 50%; /* Vibrant blue for hover/focus accents in dark mode */
+    /* Accent for hover/focus, slightly brighter than new primary */
+    --accent: 217 60% 55%; 
     --accent-foreground: 210 40% 98%; /* Light text on accent elements */
 
     --destructive: 0 70% 55%; /* Slightly desaturated red for dark theme */
@@ -30,9 +32,9 @@
 
     --border: 210 10% 30%; /* Dark border */
     --input: 210 10% 18%; /* Darker input background for contrast */
-    --ring: 207 75% 60%; /* Brighter Blue for focus rings */
+    --ring: 217 60% 58%; /* Brighter Blue for focus rings, matches accent */
 
-    --chart-1: 207 70% 58%; 
+    --chart-1: 217 60% 58%; 
     --chart-2: 173 65% 45%;
     --chart-3: 30 80% 60%;
     --chart-4: 280 70% 65%;
@@ -42,12 +44,12 @@
     /* Sidebar variables - specific for dark theme */
     --sidebar-background: 220 10% 8%;
     --sidebar-foreground: 210 40% 90%;
-    --sidebar-primary: 207 75% 55%;
+    --sidebar-primary: 217 60% 50%; 
     --sidebar-primary-foreground: 210 40% 98%;
     --sidebar-accent: 210 10% 15%;
-    --sidebar-accent-foreground: 207 75% 65%;
+    --sidebar-accent-foreground: 217 60% 55%; 
     --sidebar-border: 210 10% 25%;
-    --sidebar-ring: 207 75% 60%;
+    --sidebar-ring: 217 60% 58%;
   }
 
   /* Light theme overrides (if ever needed, but primary is dark) */
@@ -58,20 +60,20 @@
     --card-foreground: 220 10% 15%;
     --popover: 0 0% 100%;
     --popover-foreground: 220 10% 15%;
-    --primary: 207 68% 53%;
+    --primary: 217 55% 48%; /* Darker blue for light theme too */
     --primary-foreground: 0 0% 100%;
     --secondary: 210 40% 91%;
     --secondary-foreground: 220 10% 15%;
     --muted: 210 40% 85%;
     --muted-foreground: 210 10% 45%;
-    --accent: 207 68% 60%;
+    --accent: 217 55% 53%; 
     --accent-foreground: 0 0% 100%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
     --border: 210 20% 88%;
     --input: 210 30% 96%;
-    --ring: 207 68% 53%;
-    --chart-1: 207 68% 53%;
+    --ring: 217 55% 48%;
+    --chart-1: 217 55% 48%;
     --chart-2: 173 58% 39%;
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
@@ -79,12 +81,12 @@
     
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary: 217 55% 40%;
     --sidebar-primary-foreground: 0 0% 98%;
     --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-accent-foreground: 217 55% 45%;
     --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-ring: 217 85% 55%;
   }
 }
 

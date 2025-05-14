@@ -1,4 +1,6 @@
 
+export type Sentiment = "Positive" | "Neutral" | "Negative" | "Unknown";
+
 export interface StockData {
   ticker: string;
   name: string;
@@ -28,6 +30,7 @@ export interface NewsArticle {
   publishedAt: string; // ISO string
   summary?: string; // AI generated for individual article
   imageUrl?: string;
+  sentiment?: Sentiment; // Added sentiment
 }
 
 export interface StockVoyantData {
