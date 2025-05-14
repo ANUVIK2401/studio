@@ -2,6 +2,9 @@
 
 import type { StockVoyantData, ServerActionResponse, NewsArticle, StockData, HistoricalDataPoint } from "./types";
 import { summarizeNewsArticle } from "@/ai/flows/summarize-news-article";
+import { generateFinancialSummary, type GenerateFinancialSummaryInput } from "@/ai/flows/generate-financial-summary-flow";
+import { subDays, parseISO } from 'date-fns';
+
 
 // MOCK DATA AND FUNCTIONS
 
@@ -83,125 +86,146 @@ const MOCK_STOCKS: Record<string, { data: StockData, historical: HistoricalDataP
 const MOCK_NEWS: Record<string, Omit<NewsArticle, 'id' | 'summary' | 'imageUrl'>[]> = {
   "AAPL": [
     {
-      title: "Apple Unveils New Vision Pro Features at WWDC",
-      source: "TechCrunch",
-      articleUrl: "https://placehold.co/600x400?text=Article+1+Content",
-      articleContent: "Apple today announced several new features for its Vision Pro headset at the Worldwide Developers Conference. These include improved hand tracking, new spatial computing apps, and a more immersive entertainment experience. Analysts are optimistic about the updates, suggesting they could drive further adoption of the mixed-reality device.",
-      publishedAt: new Date(Date.now() - 86400000 * 0.5).toISOString(), // 0.5 day ago
-    },
-    {
-      title: "iPhone 16 Production Ramps Up Amid Strong Demand Forecasts",
-      source: "Bloomberg",
-      articleUrl: "https://placehold.co/600x400?text=Article+2+Content",
-      articleContent: "Sources close to Apple's supply chain report that production for the upcoming iPhone 16 series is ramping up. Foxconn and other manufacturing partners are hiring additional workers to meet anticipated strong global demand. The new lineup is expected to feature AI enhancements and camera upgrades.",
-      publishedAt: new Date(Date.now() - 86400000 * 1).toISOString(), // 1 day ago
-    },
-    {
-      title: "Analysts Weigh In on Apple's AI Strategy for Services",
-      source: "Reuters",
-      articleUrl: "https://placehold.co/600x400?text=Article+3+Content",
-      articleContent: "Financial analysts are closely watching Apple's evolving AI strategy, particularly how it will be integrated into its services ecosystem. Expectations are high for AI-driven improvements in Siri, Apple Music, and iCloud, potentially creating new revenue streams.",
-      publishedAt: new Date(Date.now() - 86400000 * 1.5).toISOString(), // 1.5 days ago
-    },
-    {
-      title: "Apple Expands Manufacturing Footprint in Southeast Asia",
-      source: "Nikkei Asia",
-      articleUrl: "https://placehold.co/600x400?text=Article+4+Content",
-      articleContent: "Apple is reportedly increasing its investment in manufacturing facilities in Vietnam and India as part of its supply chain diversification strategy. This move aims to reduce reliance on a single region and build resilience against geopolitical uncertainties.",
+      title: "Apple Vision Pro Sees Strong Pre-Orders",
+      source: "TechNewsDaily",
+      articleUrl: "https://placehold.co/600x400?text=Vision+Pro+Success",
+      articleContent: "Apple's new Vision Pro headset is reportedly seeing strong pre-order numbers, exceeding initial analyst expectations. This early demand signals potential for a new major product category for Apple, though long-term success will depend on app ecosystem and broader consumer adoption. Some concerns remain about the high price point.",
       publishedAt: new Date(Date.now() - 86400000 * 2).toISOString(), // 2 days ago
     },
     {
-      title: "Next Generation Apple Watch to Feature Advanced Health Sensors",
-      source: "The Verge",
-      articleUrl: "https://placehold.co/600x400?text=Article+5+Content",
-      articleContent: "Rumors suggest the next Apple Watch iteration will include more sophisticated health monitoring sensors, potentially including blood pressure monitoring and sleep apnea detection. This continues Apple's push into personal health and wellness technology.",
-      publishedAt: new Date(Date.now() - 86400000 * 2.5).toISOString(), // 2.5 days ago
+      title: "iPhone 16 Supply Chain Ramping Up",
+      source: "SupplyChainWeekly",
+      articleUrl: "https://placehold.co/600x400?text=iPhone+16+Production",
+      articleContent: "Key Apple suppliers are increasing production capacity for components expected to be used in the upcoming iPhone 16. This move indicates Apple is on track for its usual fall launch schedule. The new models are rumored to feature enhanced AI capabilities and camera improvements.",
+      publishedAt: new Date(Date.now() - 86400000 * 5).toISOString(), // 5 days ago
+    },
+    {
+      title: "Apple Faces Antitrust Scrutiny in Europe Over App Store Policies",
+      source: "GlobalRegulatorNews",
+      articleUrl: "https://placehold.co/600x400?text=Apple+EU+Antitrust",
+      articleContent: "European regulators are intensifying their investigation into Apple's App Store policies, particularly concerning commission rates and restrictions on alternative payment systems. This could lead to significant fines or forced changes to Apple's business model in the region.",
+      publishedAt: new Date(Date.now() - 86400000 * 10).toISOString(), // 10 days ago
+    },
+     {
+      title: "Analysts Bullish on Apple Services Growth",
+      source: "MarketWatch",
+      articleUrl: "https://placehold.co/600x400?text=Apple+Services+Growth",
+      articleContent: "Several financial analysts have reiterated their buy ratings for Apple stock, citing continued strong growth in its services division. Subscription services like Apple Music, iCloud, and Apple TV+ are seen as key drivers of recurring revenue.",
+      publishedAt: new Date(Date.now() - 86400000 * 15).toISOString(), // 15 days ago
+    },
+    {
+      title: "Apple Invests Further in AI Research and Development",
+      source: "AIInnovationHub",
+      articleUrl: "https://placehold.co/600x400?text=Apple+AI+Investment",
+      articleContent: "Apple is reportedly significantly increasing its investment in artificial intelligence research and development. This includes hiring top AI talent and acquiring smaller AI startups, signaling a strategic push to integrate more advanced AI features across its product lines.",
+      publishedAt: new Date(Date.now() - 86400000 * 25).toISOString(), // 25 days ago
+    },
+     {
+      title: "Older Apple News Not For Summary",
+      source: "ArchiveNews",
+      articleUrl: "https://placehold.co/600x400?text=Apple+Old+News",
+      articleContent: "This is an older news article from more than a month ago and should not be included in the financial summary. It discusses past product launches.",
+      publishedAt: new Date(Date.now() - 86400000 * 40).toISOString(), // 40 days ago
     }
   ],
   "GOOGL": [
+    // ... (similar structure with 5-6 articles, varying dates, including some older than 1 month)
     {
-      title: "Google DeepMind Announces Breakthrough in AI Drug Discovery",
-      source: "Reuters",
-      articleUrl: "https://placehold.co/600x400?text=Article+GOOGL+1+Content",
-      articleContent: "Google's DeepMind division today revealed a significant advancement in using artificial intelligence for drug discovery. Their new model, 'AlphaFold Bio', can predict protein structures with unprecedented accuracy, potentially accelerating the development of new medicines for various diseases.",
-      publishedAt: new Date(Date.now() - 86400000 * 0.7).toISOString(),
+      title: "Google AI Unveils New Large Language Model 'Gemini 2.0'",
+      source: "AI Times",
+      articleUrl: "https://placehold.co/600x400?text=GOOGL+AI+LLM",
+      articleContent: "Google AI has announced 'Gemini 2.0', its next-generation large language model, promising enhanced reasoning and coding capabilities. This move aims to compete directly with OpenAI's latest models and solidify Google's position in the AI race. Early benchmarks show impressive performance.",
+      publishedAt: new Date(Date.now() - 86400000 * 3).toISOString(),
     },
     {
-      title: "Google Search Algorithm Update Impacts Local Businesses",
-      source: "Search Engine Land",
-      articleUrl: "https://placehold.co/600x400?text=Article+GOOGL+2+Content",
-      articleContent: "A recent update to Google's search algorithm appears to be affecting the visibility of local businesses in search results. SEO experts are analyzing the changes and advising businesses on how to adapt their online presence.",
-      publishedAt: new Date(Date.now() - 86400000 * 1.2).toISOString(),
+      title: "Alphabet's Waymo Expands Robotaxi Service",
+      source: "FutureTransport",
+      articleUrl: "https://placehold.co/600x400?text=Waymo+Expansion",
+      articleContent: "Waymo, Alphabet's self-driving car unit, is expanding its commercial robotaxi service to two new cities. This indicates growing confidence in the technology and a push towards wider commercialization, though regulatory hurdles and public acceptance remain key challenges.",
+      publishedAt: new Date(Date.now() - 86400000 * 8).toISOString(),
     },
     {
-      title: "Alphabet's Waymo Expands Robotaxi Service to New City",
-      source: "TechCrunch",
-      articleUrl: "https://placehold.co/600x400?text=Article+GOOGL+3+Content",
-      articleContent: "Waymo, Alphabet's self-driving car company, has announced the expansion of its robotaxi service to Austin, Texas. This marks another step in the company's efforts to commercialize autonomous vehicle technology.",
-      publishedAt: new Date(Date.now() - 86400000 * 1.8).toISOString(),
+      title: "Google Cloud Revenue Growth Slows Slightly, Concerns Analysts",
+      source: "CloudComputingReport",
+      articleUrl: "https://placehold.co/600x400?text=Google+Cloud+Revenue",
+      articleContent: "While Google Cloud continues to grow, its latest quarterly revenue figures showed a slight deceleration in growth rate compared to previous periods. Some analysts express concern this might indicate intensifying competition from AWS and Azure.",
+      publishedAt: new Date(Date.now() - 86400000 * 12).toISOString(),
     },
     {
-      title: "Google Cloud Unveils New AI Tools for Developers",
-      source: "VentureBeat",
-      articleUrl: "https://placehold.co/600x400?text=Article+GOOGL+4+Content",
-      articleContent: "At its annual cloud conference, Google Cloud introduced a suite of new AI-powered tools aimed at developers, including enhanced large language models and improved machine learning infrastructure.",
-      publishedAt: new Date(Date.now() - 86400000 * 2.2).toISOString(),
+      title: "Pixel 9 Series to Feature Tensor G4 Chip and AI Focus",
+      source: "TechLeaks",
+      articleUrl: "https://placehold.co/600x400?text=Pixel+9+Tensor+G4",
+      articleContent: "Leaks suggest the upcoming Google Pixel 9 series will be powered by the new Tensor G4 chip, with a strong emphasis on on-device AI features. Google aims to leverage its AI prowess to differentiate its hardware offerings.",
+      publishedAt: new Date(Date.now() - 86400000 * 20).toISOString(),
     },
     {
-      title: "Regulatory Scrutiny Increases on Google's Ad Tech Business",
-      source: "Wall Street Journal",
-      articleUrl: "https://placehold.co/600x400?text=Article+GOOGL+5+Content",
-      articleContent: "Google's advertising technology business is facing increased regulatory scrutiny in both the US and Europe. Antitrust concerns are being raised about its dominant market position.",
-      publishedAt: new Date(Date.now() - 86400000 * 2.8).toISOString(),
+      title: "YouTube Ad Revenue Up, Shorts Monetization Improving",
+      source: "DigitalMediaWorld",
+      articleUrl: "https://placehold.co/600x400?text=YouTube+Ads+Shorts",
+      articleContent: "Google reported an increase in YouTube advertising revenue, with promising signs of improved monetization for its short-form video platform, YouTube Shorts. This is crucial for competing with TikTok and Instagram Reels.",
+      publishedAt: new Date(Date.now() - 86400000 * 28).toISOString(),
+    },
+    {
+      title: "Google Settles Old Privacy Lawsuit",
+      source: "LegalNews",
+      articleUrl: "https://placehold.co/600x400?text=Google+Old+Lawsuit",
+      articleContent: "This is an older news article about Google settling a privacy lawsuit that concluded over a month ago. It should not be part of the current financial summary.",
+      publishedAt: new Date(Date.now() - 86400000 * 50).toISOString(),
     }
   ],
    "MSFT": [
+    // ... (similar structure with 5-6 articles, varying dates, including some older than 1 month)
     {
-      title: "Microsoft Azure Gains Market Share in Cloud Computing",
-      source: "Wall Street Journal",
-      articleUrl: "https://placehold.co/600x400?text=Article+MSFT+1+Content",
-      articleContent: "Microsoft's Azure cloud platform continues to gain market share, according to a new report from Synergy Research Group. Azure's growth is attributed to strong enterprise adoption and its expanding portfolio of AI and data services.",
-      publishedAt: new Date(Date.now() - 86400000 * 1).toISOString(),
+      title: "Microsoft Q3 Earnings Beat Expectations, Azure Growth Strong",
+      source: "FinancialPost",
+      articleUrl: "https://placehold.co/600x400?text=MSFT+Q3+Earnings",
+      articleContent: "Microsoft reported strong Q3 earnings, surpassing analyst expectations, largely driven by continued robust growth in its Azure cloud computing division. The company's AI initiatives, particularly Copilot integrations, are also starting to show positive revenue impact.",
+      publishedAt: new Date(Date.now() - 86400000 * 4).toISOString(),
     },
     {
-      title: "Microsoft Integrates Copilot AI into More Office 365 Apps",
-      source: "The Verge",
-      articleUrl: "https://placehold.co/600x400?text=Article+MSFT+2+Content",
-      articleContent: "Microsoft is deepening the integration of its Copilot AI assistant across the Office 365 suite, bringing new generative AI capabilities to Word, Excel, PowerPoint, and Outlook.",
-      publishedAt: new Date(Date.now() - 86400000 * 1.5).toISOString(),
+      title: "Microsoft Completes Acquisition of Gaming Studio 'GameMakers Inc.'",
+      source: "GamingIndustryNews",
+      articleUrl: "https://placehold.co/600x400?text=MSFT+Acquisition",
+      articleContent: "Microsoft has finalized its acquisition of 'GameMakers Inc.', a prominent game development studio. This move is expected to bolster Xbox Game Studios' portfolio and enhance content for the Game Pass subscription service. Regulatory approval was the final step.",
+      publishedAt: new Date(Date.now() - 86400000 * 9).toISOString(),
     },
     {
-      title: "Xbox Announces New Game Pass Titles for Next Month",
-      source: "IGN",
-      articleUrl: "https://placehold.co/600x400?text=Article+MSFT+3+Content",
-      articleContent: "Microsoft's Xbox division has revealed the next batch of games coming to its popular Game Pass subscription service, including several anticipated indie titles and day-one releases.",
-      publishedAt: new Date(Date.now() - 86400000 * 2).toISOString(),
+      title: "Copilot AI Expanding to More Microsoft 365 Services",
+      source: "EnterpriseTech",
+      articleUrl: "https://placehold.co/600x400?text=Copilot+Expansion",
+      articleContent: "Microsoft announced plans to integrate its Copilot AI assistant into additional Microsoft 365 services, including SharePoint and Microsoft Teams Premium. The company is betting heavily on generative AI to drive productivity and enterprise software sales.",
+      publishedAt: new Date(Date.now() - 86400000 * 14).toISOString(),
     },
     {
-      title: "Microsoft and OpenAI Strengthen Partnership on AI Research",
-      source: "Bloomberg",
-      articleUrl: "https://placehold.co/600x400?text=Article+MSFT+4+Content",
-      articleContent: "Microsoft and OpenAI are reportedly strengthening their partnership with new joint initiatives in AI research and development, focusing on building more powerful and responsible AI models.",
-      publishedAt: new Date(Date.now() - 86400000 * 2.5).toISOString(),
+      title: "Microsoft Increases Investment in Renewable Energy for Data Centers",
+      source: "SustainableTech",
+      articleUrl: "https://placehold.co/600x400?text=MSFT+Renewable+Energy",
+      articleContent: "Microsoft is significantly increasing its investment in renewable energy projects to power its global network of data centers. This aligns with its sustainability goals and aims to address the growing energy demands of AI workloads.",
+      publishedAt: new Date(Date.now() - 86400000 * 22).toISOString(),
     },
     {
-      title: "Windows 12 Rumors Point to Deeper AI Integration",
-      source: "Windows Central",
-      articleUrl: "https://placehold.co/600x400?text=Article+MSFT+5+Content",
-      articleContent: "Speculation is growing about the next version of Windows, with sources suggesting it will feature significantly deeper AI integration throughout the operating system, potentially transforming user interaction.",
-      publishedAt: new Date(Date.now() - 86400000 * 3).toISOString(),
+      title: "New Surface Laptop 7 and Surface Pro 10 Announced",
+      source: "GadgetReview",
+      articleUrl: "https://placehold.co/600x400?text=Surface+Launch",
+      articleContent: "Microsoft unveiled its latest Surface Laptop 7 and Surface Pro 10 devices, featuring new Intel Core Ultra processors and dedicated NPUs for enhanced AI performance. These devices are aimed at both consumers and professionals.",
+      publishedAt: new Date(Date.now() - 86400000 * 29).toISOString(),
     },
+    {
+      title: "Microsoft's Old Partnership with Nokia - A Look Back",
+      source: "TechHistory",
+      articleUrl: "https://placehold.co/600x400?text=MSFT+Nokia+History",
+      articleContent: "This article is a historical piece about Microsoft's partnership with Nokia from many years ago. It's older than one month and not relevant for the current financial summary.",
+      publishedAt: new Date(Date.now() - 86400000 * 60).toISOString(),
+    }
   ]
 };
 
 async function mockFetchStockData(ticker: string): Promise<{ data: StockData, historical: HistoricalDataPoint[] } | null> {
-  await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate network delay
+  await new Promise(resolve => setTimeout(resolve, 800)); // Simulate network delay
   if (MOCK_STOCKS[ticker]) {
     const stock = MOCK_STOCKS[ticker];
-    const priceChange = (Math.random() - 0.5) * (stock.data.price * 0.01); // Max 1% random price fluctuation for realism
+    const priceChange = (Math.random() - 0.5) * (stock.data.price * 0.01);
     const newPrice = parseFloat((stock.data.price + priceChange).toFixed(2));
-    
-    // Simulate change based on new price vs a hypothetical previous day's close (original price +- small random amount)
     const prevClose = stock.data.price + (Math.random() -0.5) * (stock.data.price * 0.005);
     const newAbsChange = parseFloat((newPrice - prevClose).toFixed(2));
     const newChangePercent = parseFloat(((newAbsChange / prevClose) * 100).toFixed(2));
@@ -221,48 +245,83 @@ async function mockFetchStockData(ticker: string): Promise<{ data: StockData, hi
 }
 
 async function mockFetchNews(ticker: string): Promise<NewsArticle[]> {
-  await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate network delay
+  await new Promise(resolve => setTimeout(resolve, 700)); 
   const newsItems = MOCK_NEWS[ticker] || [];
-  // Sort by publishedAt to simulate "latest"
   const sortedNews = newsItems.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
-  return sortedNews.slice(0, 6).map((item, index) => ({ // Take top 5-6
+  return sortedNews.map((item, index) => ({
     ...item,
     id: `${ticker}-news-${index + 1}`,
-    imageUrl: `https://placehold.co/300x200.png?text=${encodeURIComponent(ticker)}+${index+1}`, // Add placeholder image
+    imageUrl: `https://placehold.co/300x200.png?text=${encodeURIComponent(ticker)}+News+${index+1}`,
   }));
 }
 
 export async function fetchStockDataAndNews(ticker: string): Promise<ServerActionResponse> {
   try {
-    if (!MOCK_STOCKS[ticker.toUpperCase()]) {
+    const upperTicker = ticker.toUpperCase();
+    if (!MOCK_STOCKS[upperTicker]) {
       return { error: `Ticker symbol "${ticker}" not found or not supported. Supported: AAPL, GOOGL, MSFT` };
     }
 
-    const stockInfoPromise = mockFetchStockData(ticker.toUpperCase());
-    const newsPromise = mockFetchNews(ticker.toUpperCase());
+    const stockInfoPromise = mockFetchStockData(upperTicker);
+    const allNewsPromise = mockFetchNews(upperTicker);
 
-    const [stockDetails, rawNewsArticles] = await Promise.all([stockInfoPromise, newsPromise]);
+    const [stockDetails, allRawNewsArticles] = await Promise.all([stockInfoPromise, allNewsPromise]);
 
     if (!stockDetails) {
       return { error: `Failed to fetch data for ticker "${ticker}".` };
     }
 
-    const summarizedArticles: NewsArticle[] = [];
-    for (const article of rawNewsArticles) {
+    // Filter news for the last 30 days for financial summary
+    const thirtyDaysAgo = subDays(new Date(), 30);
+    const recentNewsForSummary = allRawNewsArticles.filter(article => 
+      parseISO(article.publishedAt) >= thirtyDaysAgo
+    );
+    
+    // Prepare input for financial summary flow
+    const financialSummaryInput: GenerateFinancialSummaryInput = {
+      stockTicker: upperTicker,
+      companyName: stockDetails.data.name,
+      newsArticles: recentNewsForSummary.map(article => ({
+        title: article.title,
+        articleContent: article.articleContent, // Genkit flow will truncate if necessary
+        publishedAt: article.publishedAt,
+        source: article.source,
+      })),
+    };
+
+    let financialSummaryText = "Financial summary based on recent news is currently unavailable.";
+    if (financialSummaryInput.newsArticles.length > 0) {
+        try {
+            const summaryResult = await generateFinancialSummary(financialSummaryInput);
+            financialSummaryText = summaryResult.summary;
+        } catch (genSummaryError) {
+            console.error(`Failed to generate financial summary for ${upperTicker}:`, genSummaryError);
+            // Keep default message or provide more specific error
+        }
+    } else {
+        financialSummaryText = `No news articles found for ${upperTicker} in the last 30 days to generate a financial summary.`;
+    }
+
+
+    // Summarize all fetched articles (up to 6 for display cards)
+    const articlesForDisplay = allRawNewsArticles.slice(0, 6);
+    const summarizedArticlesForDisplay: NewsArticle[] = [];
+
+    for (const article of articlesForDisplay) {
       try {
-        const summaryResult = await summarizeNewsArticle({
+        const indivSummaryResult = await summarizeNewsArticle({
           articleTitle: article.title,
           articleUrl: article.articleUrl,
           articleContent: article.articleContent,
-          stockTicker: ticker.toUpperCase(),
+          stockTicker: upperTicker,
         });
-        summarizedArticles.push({
+        summarizedArticlesForDisplay.push({
           ...article,
-          summary: summaryResult.summary,
+          summary: indivSummaryResult.summary,
         });
       } catch (summaryError) {
         console.error(`Failed to summarize article "${article.title}":`, summaryError);
-        summarizedArticles.push({
+        summarizedArticlesForDisplay.push({
           ...article,
           summary: "AI summary currently unavailable for this article.",
         });
@@ -272,7 +331,8 @@ export async function fetchStockDataAndNews(ticker: string): Promise<ServerActio
     const responseData: StockVoyantData = {
       stockData: stockDetails.data,
       historicalData: stockDetails.historical,
-      newsArticles: summarizedArticles,
+      newsArticles: summarizedArticlesForDisplay, // These are the ones with individual summaries for cards (if we use cards)
+      financialSummary: financialSummaryText,
     };
 
     return { data: responseData };

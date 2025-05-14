@@ -1,17 +1,36 @@
 "use client";
 
-import { useState } from "react";
-import type { StockVoyantData, ServerActionResponse } from "@/lib/types";
+import { useState, useEffect } from "react";
+import type { StockVoyantData, ServerActionResponse, NewsArticle } from "@/lib/types";
 import { fetchStockDataAndNews } from "@/lib/actions";
 import { TickerInputForm } from "@/components/stock-voyant/TickerInputForm";
 import { StockMetricsCard } from "@/components/stock-voyant/StockMetricsCard";
 import { HistoricalChart } from "@/components/stock-voyant/HistoricalChart";
-import { NewsArticleCard } from "@/components/stock-voyant/NewsArticleCard";
+// import { NewsArticleCard } from "@/components/stock-voyant/NewsArticleCard"; // We'll use a simpler list
 import { LoadingState } from "@/components/shared/LoadingState";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, CheckCircle, BarChartBig, NewspaperIcon } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { AlertCircle, CheckCircle, BarChartBig, NewspaperIcon, FileText, Link as LinkIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
+import { formatDistanceToNow } from 'date-fns';
+
+// Simple component for news links
+const NewsLinkItem: React.FC<{ article: NewsArticle }> = ({ article }) => (
+  <li className="mb-2">
+    <a
+      href={article.articleUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="text-sm text-primary hover:underline hover:text-primary/80 transition-colors flex items-start group"
+    >
+      <LinkIcon className="h-4 w-4 mr-2 mt-0.5 shrink-0 text-muted-foreground group-hover:text-primary/90 transition-colors" />
+      <span>{article.title} <span className="text-xs text-muted-foreground/70">({article.source}, {formatDistanceToNow(new Date(article.publishedAt), { addSuffix: true })})</span></span>
+    </a>
+  </li>
+);
+
 
 export default function HomePage() {
   const [stockData, setStockData] = useState<StockVoyantData | null>(null);
@@ -20,11 +39,19 @@ export default function HomePage() {
   const [initialLoad, setInitialLoad] = useState(true);
   const { toast } = useToast();
 
+  // For animation states
+  const [showMetrics, setShowMetrics] = useState(false);
+  const [showFinancialSummary, setShowFinancialSummary] = useState(false);
+
+
   const handleTickerSubmit = async (ticker: string) => {
     setIsLoading(true);
     setError(null);
     setStockData(null);
     setInitialLoad(false);
+    setShowMetrics(false);
+    setShowFinancialSummary(false);
+
 
     const result: ServerActionResponse = await fetchStockDataAndNews(ticker);
 
@@ -38,6 +65,9 @@ export default function HomePage() {
       });
     } else if (result.data) {
       setStockData(result.data);
+      // Trigger animations with a slight delay for effect
+      setTimeout(() => setShowMetrics(true), 100);
+      setTimeout(() => setShowFinancialSummary(true), 300);
       toast({
         variant: "default",
         className: "bg-green-500/10 border-green-500/30 text-foreground",
@@ -49,13 +79,13 @@ export default function HomePage() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       <TickerInputForm onSubmit={handleTickerSubmit} isLoading={isLoading} />
 
-      {isLoading && <LoadingState text="Fetching financial insights..." />}
+      {isLoading && <LoadingState text="Conjuring financial spells..." />}
 
       {error && !isLoading && (
-        <Alert variant="destructive" className="max-w-2xl mx-auto bg-destructive/80 text-destructive-foreground">
+        <Alert variant="destructive" className="max-w-2xl mx-auto bg-destructive/80 text-destructive-foreground animate-in fade-in duration-500">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Error</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
@@ -63,48 +93,90 @@ export default function HomePage() {
       )}
 
       {!isLoading && !error && !stockData && !initialLoad && (
-         <Alert className="max-w-2xl mx-auto bg-card/80 backdrop-blur-sm">
+         <Alert className="max-w-2xl mx-auto bg-card/80 backdrop-blur-sm animate-in fade-in duration-500">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>No Data</AlertTitle>
           <AlertDescription>No data to display. Please enter a valid stock ticker and search.</AlertDescription>
         </Alert>
       )}
       
-      {!isLoading && !error && stockData && (
-        <div className="space-y-10">
-          <div>
-            <h2 className="text-2xl font-semibold mb-4 flex items-center text-foreground/90"><BarChartBig className="mr-2 h-7 w-7 text-primary"/>Key Metrics &amp; Performance</h2>
+      {stockData && (
+        <div className="space-y-12">
+          {/* Metrics and Chart Section */}
+          <section 
+            className={`transition-all duration-700 ease-out ${showMetrics ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`}
+            style={{ transformOrigin: 'top' }}
+          >
+            <h2 className="text-3xl font-bold mb-6 flex items-center text-primary/90"><BarChartBig className="mr-3 h-8 w-8"/>Key Metrics &amp; Performance</h2>
             <StockMetricsCard data={stockData.stockData} />
             <HistoricalChart data={stockData.historicalData} ticker={stockData.stockData.ticker} />
-          </div>
+          </section>
 
-          <Separator className="my-8 bg-border/50" />
+          <Separator className="my-10 bg-border/30" />
           
-          <div>
-            <h2 className="text-2xl font-semibold mb-6 flex items-center text-foreground/90"><NewspaperIcon className="mr-2 h-7 w-7 text-primary"/>Related News</h2>
-            {stockData.newsArticles.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {stockData.newsArticles.map((article) => (
-                  <NewsArticleCard key={article.id} article={article} />
-                ))}
+          {/* Financial Summary and News Links Section */}
+           <section 
+            className={`transition-all duration-700 ease-out delay-200 ${showFinancialSummary ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`}
+            style={{ transformOrigin: 'top' }}
+          >
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+              {/* Left Column: Financial Summary */}
+              <div className="lg:col-span-3">
+                <h2 className="text-3xl font-bold mb-6 flex items-center text-primary/90"><FileText className="mr-3 h-8 w-8"/>AI Financial Summary</h2>
+                <Card className="shadow-xl bg-card/80 backdrop-blur-sm min-h-[300px]">
+                  <CardHeader>
+                    <CardTitle className="text-xl font-semibold text-foreground/90">
+                      Summary for {stockData.stockData.name} ({stockData.stockData.ticker})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {stockData.financialSummary ? (
+                      <p className="text-foreground/80 whitespace-pre-line leading-relaxed">{stockData.financialSummary}</p>
+                    ) : (
+                       <Alert className="bg-card/80 backdrop-blur-sm">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertTitle>Summary Not Available</AlertTitle>
+                        <AlertDescription>The AI financial summary could not be generated at this time.</AlertDescription>
+                      </Alert>
+                    )}
+                  </CardContent>
+                </Card>
               </div>
-            ) : (
-              <Alert className="max-w-lg mx-auto bg-card/80 backdrop-blur-sm">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>No News Articles</AlertTitle>
-                <AlertDescription>No recent news articles found for this stock.</AlertDescription>
-              </Alert>
-            )}
-          </div>
+
+              {/* Right Column: News Links */}
+              <div className="lg:col-span-1">
+                <h2 className="text-2xl font-semibold mb-6 flex items-center text-foreground/90"><NewspaperIcon className="mr-2 h-7 w-7 text-primary"/>Recent News</h2>
+                 <Card className="shadow-lg bg-card/70 backdrop-blur-sm p-4 max-h-[450px] overflow-y-auto">
+                  {stockData.newsArticles.length > 0 ? (
+                    <ul className="space-y-3">
+                      {stockData.newsArticles.map((article) => (
+                        <NewsLinkItem key={article.id} article={article} />
+                      ))}
+                    </ul>
+                  ) : (
+                    <Alert className="bg-card/80 backdrop-blur-sm text-sm">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertTitle>No News</AlertTitle>
+                      <AlertDescription>No recent news articles found for this stock.</AlertDescription>
+                    </Alert>
+                  )}
+                </Card>
+              </div>
+            </div>
+          </section>
         </div>
       )}
 
       {initialLoad && !isLoading && (
-        <div className="text-center py-10">
-          <BarChartBig className="mx-auto h-16 w-16 text-muted-foreground mb-4" />
-          <h2 className="text-2xl font-semibold text-foreground/90 mb-2">Welcome to StockVoyant</h2>
-          <p className="text-muted-foreground">Enter a stock ticker symbol above to get started.</p>
-          <p className="text-sm text-muted-foreground mt-2">Supported mock tickers: AAPL, GOOGL, MSFT</p>
+        <div className="text-center py-16 animate-in fade-in duration-1000">
+          <BarChartBig className="mx-auto h-20 w-20 text-muted-foreground/70 mb-6" />
+          <h1 className="text-4xl font-bold text-primary mb-3">Welcome to StockVoyant</h1>
+          <p className="text-lg text-muted-foreground mb-6">
+            Enter a stock ticker symbol above to unveil AI-powered financial insights.
+          </p>
+          <p className="text-md text-muted-foreground/80">
+            Supported mock tickers: <code className="bg-muted/50 px-2 py-1 rounded-md text-primary/90">AAPL</code>, <code className="bg-muted/50 px-2 py-1 rounded-md text-primary/90">GOOGL</code>, <code className="bg-muted/50 px-2 py-1 rounded-md text-primary/90">MSFT</code>
+          </p>
         </div>
       )}
     </div>

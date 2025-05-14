@@ -4,42 +4,79 @@
 
 @layer base {
   :root {
-    --background: 210 40% 98%; /* Light cool grey */
-    --foreground: 220 10% 15%; /* Darker grey for text */
+    --background: 220 10% 10%; /* Dark background for dark theme */
+    --foreground: 210 40% 98%; /* Light foreground for dark theme */
 
-    --card: 0 0% 100%; /* White */
-    --card-foreground: 220 10% 15%; /* Darker grey for text on cards */
+    --card: 220 10% 12%; /* Darker card for dark theme */
+    --card-foreground: 210 40% 98%; /* Light card foreground */
 
-    --popover: 0 0% 100%; /* White */
-    --popover-foreground: 220 10% 15%; /* Darker grey for text on popovers */
+    --popover: 220 10% 14%; /* Dark popover */
+    --popover-foreground: 210 40% 98%; /* Light popover foreground */
 
-    --primary: 207 68% 53%; /* Blue accent */
-    --primary-foreground: 0 0% 100%; /* White text on primary elements */
+    --primary: 207 75% 55%; /* Brighter Blue accent for dark theme */
+    --primary-foreground: 210 40% 98%; /* Light text on primary elements */
 
-    --secondary: 210 40% 91%; /* Lighter grey for secondary elements */
-    --secondary-foreground: 220 10% 15%; /* Darker grey for text on secondary elements */
+    --secondary: 210 10% 20%; /* Dark secondary */
+    --secondary-foreground: 210 40% 98%; /* Light secondary foreground */
 
-    --muted: 210 40% 85%; /* Muted grey */
-    --muted-foreground: 210 10% 45%; /* Muted foreground text */
+    --muted: 210 10% 25%; /* Dark muted */
+    --muted-foreground: 210 20% 65%; /* Lighter muted foreground text */
 
-    --accent: 207 68% 60%; /* Slightly lighter blue for hover/focus accents */
-    --accent-foreground: 0 0% 100%; /* White text on accent elements */
+    --accent: 207 70% 50%; /* Vibrant blue for hover/focus accents in dark mode */
+    --accent-foreground: 210 40% 98%; /* Light text on accent elements */
 
-    --destructive: 0 84.2% 60.2%;
+    --destructive: 0 70% 55%; /* Slightly desaturated red for dark theme */
     --destructive-foreground: 0 0% 98%;
 
-    --border: 210 20% 88%; /* Adjusted border color */
-    --input: 210 30% 96%; /* Adjusted input background */
-    --ring: 207 68% 53%; /* Blue for focus rings */
+    --border: 210 10% 30%; /* Dark border */
+    --input: 210 10% 18%; /* Darker input background for contrast */
+    --ring: 207 75% 60%; /* Brighter Blue for focus rings */
 
-    --chart-1: 207 68% 53%; /* Blue */
+    --chart-1: 207 70% 58%; 
+    --chart-2: 173 65% 45%;
+    --chart-3: 30 80% 60%;
+    --chart-4: 280 70% 65%;
+    --chart-5: 340 75% 60%;
+    --radius: 0.75rem; /* Slightly larger radius for modern feel */
+
+    /* Sidebar variables - specific for dark theme */
+    --sidebar-background: 220 10% 8%;
+    --sidebar-foreground: 210 40% 90%;
+    --sidebar-primary: 207 75% 55%;
+    --sidebar-primary-foreground: 210 40% 98%;
+    --sidebar-accent: 210 10% 15%;
+    --sidebar-accent-foreground: 207 75% 65%;
+    --sidebar-border: 210 10% 25%;
+    --sidebar-ring: 207 75% 60%;
+  }
+
+  /* Light theme overrides (if ever needed, but primary is dark) */
+  .light {
+    --background: 210 40% 98%;
+    --foreground: 220 10% 15%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 10% 15%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 10% 15%;
+    --primary: 207 68% 53%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 40% 91%;
+    --secondary-foreground: 220 10% 15%;
+    --muted: 210 40% 85%;
+    --muted-foreground: 210 10% 45%;
+    --accent: 207 68% 60%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 210 20% 88%;
+    --input: 210 30% 96%;
+    --ring: 207 68% 53%;
+    --chart-1: 207 68% 53%;
     --chart-2: 173 58% 39%;
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
-    --radius: 0.5rem;
-
-    /* Sidebar variables - keeping them as they are, assuming not primarily used for this page */
+    
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
     --sidebar-primary: 240 5.9% 10%;
@@ -47,52 +84,6 @@
     --sidebar-accent: 240 4.8% 95.9%;
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
-  }
-
-  .dark {
-    /* Keeping dark mode variables as they are, focusing on light mode for this request */
-    --background: 220 10% 10%; /* Dark background */
-    --foreground: 210 40% 98%; /* Light foreground */
-
-    --card: 220 10% 12%; /* Dark card */
-    --card-foreground: 210 40% 98%; /* Light card foreground */
-
-    --popover: 220 10% 12%; /* Dark popover */
-    --popover-foreground: 210 40% 98%; /* Light popover foreground */
-
-    --primary: 207 68% 53%; /* Blue accent */
-    --primary-foreground: 0 0% 100%; /* White text on primary */
-
-    --secondary: 210 10% 20%; /* Dark secondary */
-    --secondary-foreground: 210 40% 98%; /* Light secondary foreground */
-
-    --muted: 210 10% 25%; /* Dark muted */
-    --muted-foreground: 210 20% 65%; /* Light muted foreground */
-
-    --accent: 207 68% 45%; /* Darker blue accent */
-    --accent-foreground: 0 0% 100%; /* White text on accent */
-    
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-
-    --border: 210 10% 30%; /* Dark border */
-    --input: 210 10% 20%; /* Dark input */
-    --ring: 207 68% 53%; /* Blue ring */
-    
-    --chart-1: 207 60% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
-
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 }
@@ -103,6 +94,41 @@
   }
   body {
     @apply bg-background text-foreground;
-    /* Removed font-family: Arial, Helvetica, sans-serif; to allow Tailwind to use configured Geist fonts */
+    /* Smooth scroll behavior */
+    scroll-behavior: smooth;
+  }
+  /* Custom scrollbar for a sleeker dark theme */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--background) / 0.5);
+    border-radius: var(--radius);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted));
+    border-radius: var(--radius);
+    transition: background 0.2s ease-in-out;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--accent));
+  }
+}
+
+/* Additional keyframes for subtle animations if needed */
+@layer utilities {
+  .animate-subtle-slide-up {
+    animation: subtle-slide-up 0.6s ease-out forwards;
+  }
+  @keyframes subtle-slide-up {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 }

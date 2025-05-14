@@ -26,7 +26,7 @@ export interface NewsArticle {
   articleUrl: string;
   articleContent: string; // For AI summarization input
   publishedAt: string; // ISO string
-  summary?: string; // AI generated
+  summary?: string; // AI generated for individual article
   imageUrl?: string;
 }
 
@@ -34,6 +34,7 @@ export interface StockVoyantData {
   stockData: StockData;
   historicalData: HistoricalDataPoint[];
   newsArticles: NewsArticle[];
+  financialSummary?: string; // AI-generated summary based on 1-month news
 }
 
 export type ServerActionResponse = {
