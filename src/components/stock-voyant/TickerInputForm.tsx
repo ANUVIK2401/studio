@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -53,12 +54,12 @@ export function TickerInputForm({ onSubmit, isLoading }: TickerInputFormProps) {
           name="ticker"
           render={({ field }) => (
             <FormItem className="flex-grow w-full sm:w-auto">
-              <FormLabel className="text-lg font-semibold text-foreground/90">Stock Ticker</FormLabel>
+              <FormLabel className="text-base font-semibold text-foreground/90">Stock Ticker</FormLabel> {/* Reduced size */}
               <FormControl>
                 <Input 
                   placeholder="e.g., AAPL, GOOGL, MSFT" 
                   {...field} 
-                  className="text-base h-12 bg-background/70 focus:bg-background"
+                  className="text-sm h-11 bg-background/70 focus:bg-background" /* Reduced text size, adjusted height */
                   aria-label="Stock Ticker Input"
                 />
               </FormControl>
@@ -66,8 +67,8 @@ export function TickerInputForm({ onSubmit, isLoading }: TickerInputFormProps) {
             </FormItem>
           )}
         />
-        <Button type="submit" disabled={isLoading} className="w-full sm:w-auto h-12 mt-2 sm:mt-[calc(1.25rem+0.75rem)] text-base"> {/* Adjusted margin for label */}
-          <Search className="mr-2 h-5 w-5" />
+        <Button type="submit" disabled={isLoading} className="w-full sm:w-auto h-11 mt-2 sm:mt-[calc(1rem+0.75rem)] text-sm"> {/* Adjusted margin & size */}
+          <Search className="mr-2 h-4 w-4" /> {/* Reduced icon size */}
           {isLoading ? "Fetching..." : "Get Insights"}
         </Button>
       </form>

@@ -10,7 +10,7 @@ import { HistoricalChart } from "@/components/stock-voyant/HistoricalChart";
 import { LoadingState } from "@/components/shared/LoadingState";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertCircle, CheckCircle, BarChartBig, NewspaperIcon, FileText, Link as LinkIcon, Smile, Meh, Frown } from "lucide-react";
+import { AlertCircle, CheckCircle, BarChartBig, NewspaperIcon, FileText, Link as LinkIcon, Smile, Meh, Frown, TrendingUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
 import { formatDistanceToNow } from 'date-fns';
@@ -22,7 +22,7 @@ const NewsLinkItem: React.FC<{ article: NewsArticle }> = ({ article }) => {
     switch (sentiment) {
       case "Positive": return <Smile className="h-3.5 w-3.5 mr-1.5 text-[hsl(var(--chart-positive))]" />;
       case "Negative": return <Frown className="h-3.5 w-3.5 mr-1.5 text-[hsl(var(--chart-negative))]" />;
-      case "Neutral": return <Meh className="h-3.5 w-3.5 mr-1.5 text-yellow-400" />; // Keep yellow for neutral for distinction
+      case "Neutral": return <Meh className="h-3.5 w-3.5 mr-1.5 text-yellow-400" />;
       default: return <Meh className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />;
     }
   };
@@ -62,6 +62,12 @@ const NewsLinkItem: React.FC<{ article: NewsArticle }> = ({ article }) => {
     </li>
   );
 };
+
+const mockTickersForDisplay = [
+  { ticker: "AAPL", name: "Apple Inc." },
+  { ticker: "GOOGL", name: "Alphabet Inc." },
+  { ticker: "MSFT", name: "Microsoft Corp." },
+];
 
 
 export default function HomePage() {
@@ -163,7 +169,7 @@ export default function HomePage() {
                   </CardHeader>
                   <CardContent className="px-6 pb-6">
                     {stockData.financialSummary ? (
-                      <p className="text-foreground/85 whitespace-pre-line leading-relaxed text-base lg:text-lg">{stockData.financialSummary}</p>
+                      <p className="text-foreground/85 whitespace-pre-line leading-relaxed text-sm lg:text-base">{stockData.financialSummary}</p>
                     ) : (
                        <Alert className="bg-card/80 backdrop-blur-sm border-border/50">
                         <AlertCircle className="h-4 w-4" />
@@ -200,15 +206,28 @@ export default function HomePage() {
       )}
 
       {initialLoad && !isLoading && (
-        <div className="text-center py-20 animate-in fade-in duration-1000">
-          <BarChartBig className="mx-auto h-28 w-28 text-muted-foreground/60 mb-10" />
-          <h1 className="text-4xl lg:text-5xl font-bold text-primary mb-6 text-balance">Welcome to StockVoyant</h1>
-          <p className="text-lg lg:text-xl text-muted-foreground mb-10 max-w-xl mx-auto text-balance">
+        <div className="text-center py-16 animate-in fade-in duration-1000">
+          <TrendingUp className="mx-auto h-24 w-24 text-muted-foreground/50 mb-8" />
+          <h1 className="text-3xl lg:text-4xl font-bold text-primary mb-5 text-balance">Welcome to StockVoyant</h1>
+          <p className="text-base lg:text-lg text-muted-foreground mb-10 max-w-lg mx-auto text-balance">
             Enter a stock ticker symbol above to unveil AI-powered financial insights.
           </p>
-          <p className="text-md text-muted-foreground/80">
-            Supported mock tickers: <code className="font-mono bg-muted/60 px-2.5 py-1.5 rounded-md text-primary/90">AAPL</code>, <code className="font-mono bg-muted/60 px-2.5 py-1.5 rounded-md text-primary/90">GOOGL</code>, <code className="font-mono bg-muted/60 px-2.5 py-1.5 rounded-md text-primary/90">MSFT</code>
-          </p>
+          <div className="mt-10">
+            <h3 className="text-base font-medium text-center text-muted-foreground/80 mb-5">Or try one of these examples:</h3>
+            <div className="flex flex-wrap justify-center gap-4 sm:gap-6">
+              {mockTickersForDisplay.map(stock => (
+                <button
+                  key={stock.ticker}
+                  onClick={() => handleTickerSubmit(stock.ticker)}
+                  className="bg-card/60 p-4 rounded-lg shadow-lg border border-border/40 w-[130px] text-center card-interactive-lift focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
+                  aria-label={`Fetch data for ${stock.name}`}
+                >
+                  <span className="text-2xl font-bold text-primary block">{stock.ticker}</span>
+                  <p className="text-xs text-muted-foreground mt-1.5 truncate">{stock.name}</p>
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       )}
     </div>
