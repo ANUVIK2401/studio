@@ -9,6 +9,8 @@ export interface StockData {
   volume: string;
   peRatio?: number | string; // Can be N/A
   eps?: number | string; // Can be N/A
+  week52High: number;
+  week52Low: number;
   lastUpdated: string;
 }
 

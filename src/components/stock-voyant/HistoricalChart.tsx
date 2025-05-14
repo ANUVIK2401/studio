@@ -31,9 +31,9 @@ const chartConfig = {
 export function HistoricalChart({ data, ticker }: HistoricalChartProps) {
   if (!data || data.length === 0) {
     return (
-      <Card className="w-full shadow-lg">
+      <Card className="w-full shadow-xl mt-8 bg-card/80 backdrop-blur-sm">
         <CardHeader>
-          <CardTitle className="text-2xl font-semibold">Historical Performance: {ticker}</CardTitle>
+          <CardTitle className="text-2xl font-semibold text-foreground/90">Historical Performance: {ticker}</CardTitle>
           <CardDescription>1 Year Price History</CardDescription>
         </CardHeader>
         <CardContent className="h-[400px] flex items-center justify-center">
@@ -45,13 +45,14 @@ export function HistoricalChart({ data, ticker }: HistoricalChartProps) {
   
   const formattedData = data.map(point => ({
     ...point,
-    date: format(new Date(point.date), 'MMM dd, yyyy'), // Format date for display
+    // Ensure date is treated as UTC to avoid timezone shifts
+    date: format(new Date(point.date + 'T00:00:00Z'), 'MMM dd, yyyy'), 
   }));
 
   return (
-    <Card className="w-full shadow-lg mt-8">
+    <Card className="w-full shadow-xl mt-8 bg-card/80 backdrop-blur-sm">
       <CardHeader>
-        <CardTitle className="text-2xl font-semibold">Historical Performance: {ticker}</CardTitle>
+        <CardTitle className="text-2xl font-semibold text-foreground/90">Historical Performance: {ticker}</CardTitle>
         <CardDescription>1 Year Price History</CardDescription>
       </CardHeader>
       <CardContent className="h-[400px] p-0 pt-4 pr-4">
@@ -66,42 +67,54 @@ export function HistoricalChart({ data, ticker }: HistoricalChartProps) {
                 bottom: 5,
               }}
             >
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
               <XAxis 
                 dataKey="date" 
-                tickFormatter={(tick) => format(new Date(tick), 'MMM yy')}
+                tickFormatter={(label) => {
+                    // Attempt to parse the formatted date string back to a Date object
+                    // This might be tricky if the format is ambiguous or locale-dependent
+                    // A more robust way is to keep original date objects or timestamps for formatting
+                    try {
+                        // Assuming 'MMM dd, yyyy' format from formattedData
+                        return format(new Date(label), 'MMM yy');
+                    } catch (e) {
+                        return label; // fallback
+                    }
+                }}
                 tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} 
-                axisLine={{ stroke: 'hsl(var(--border))' }}
-                tickLine={{ stroke: 'hsl(var(--border))' }}
+                axisLine={{ stroke: 'hsl(var(--border))', opacity: 0.7 }}
+                tickLine={{ stroke: 'hsl(var(--border))', opacity: 0.7 }}
               />
               <YAxis 
                 tickFormatter={(value) => `$${value.toFixed(0)}`}
                 tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                axisLine={{ stroke: 'hsl(var(--border))' }}
-                tickLine={{ stroke: 'hsl(var(--border))' }}
+                axisLine={{ stroke: 'hsl(var(--border))', opacity: 0.7 }}
+                tickLine={{ stroke: 'hsl(var(--border))', opacity: 0.7 }}
                 domain={['auto', 'auto']}
               />
               <ChartTooltip
-                cursor={false}
+                cursor={{stroke: 'hsl(var(--accent))', strokeWidth: 1.5, strokeDasharray: '3 3'}}
                 content={<ChartTooltipContent 
+                            className="bg-card/90 backdrop-blur-sm shadow-xl border-border/70"
                             indicator="line" 
                             labelFormatter={(value, payload) => {
                                 if (payload && payload.length > 0 && payload[0].payload.date) {
-                                  return format(new Date(payload[0].payload.date), "PP");
+                                    // Use the pre-formatted date directly
+                                    return payload[0].payload.date;
                                 }
                                 return value;
                             }}
-                            formatter={(value) => `$${Number(value).toFixed(2)}`} 
+                            formatter={(value, name) => [`$${Number(value).toFixed(2)}`, name]} 
                             />}
               />
-              <Legend />
+              <Legend wrapperStyle={{ color: 'hsl(var(--muted-foreground))' }} />
               <Line
                 type="monotone"
                 dataKey="price"
                 stroke="hsl(var(--chart-1))"
-                strokeWidth={2}
+                strokeWidth={2.5}
                 dot={false}
-                activeDot={{ r: 6, fill: 'hsl(var(--primary))', stroke: 'hsl(var(--background))', strokeWidth: 2 }}
+                activeDot={{ r: 7, fill: 'hsl(var(--primary))', stroke: 'hsl(var(--background))', strokeWidth: 2.5 }}
                 name={`Price (${ticker})`}
               />
             </LineChart>

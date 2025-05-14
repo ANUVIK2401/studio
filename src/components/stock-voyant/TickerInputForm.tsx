@@ -44,18 +44,21 @@ export function TickerInputForm({ onSubmit, isLoading }: TickerInputFormProps) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-col sm:flex-row items-start gap-4 p-6 bg-card rounded-lg shadow-md mb-8">
+      <form 
+        onSubmit={form.handleSubmit(handleSubmit)} 
+        className="flex flex-col sm:flex-row items-start gap-4 p-6 bg-card/80 backdrop-blur-sm rounded-lg shadow-xl mb-8 max-w-2xl mx-auto"
+      >
         <FormField
           control={form.control}
           name="ticker"
           render={({ field }) => (
             <FormItem className="flex-grow w-full sm:w-auto">
-              <FormLabel className="text-lg font-semibold">Stock Ticker</FormLabel>
+              <FormLabel className="text-lg font-semibold text-foreground/90">Stock Ticker</FormLabel>
               <FormControl>
                 <Input 
-                  placeholder="e.g., AAPL, GOOGL" 
+                  placeholder="e.g., AAPL, GOOGL, MSFT" 
                   {...field} 
-                  className="text-base h-12"
+                  className="text-base h-12 bg-background/70 focus:bg-background"
                   aria-label="Stock Ticker Input"
                 />
               </FormControl>
@@ -63,7 +66,7 @@ export function TickerInputForm({ onSubmit, isLoading }: TickerInputFormProps) {
             </FormItem>
           )}
         />
-        <Button type="submit" disabled={isLoading} className="w-full sm:w-auto h-12 mt-2 sm:mt-[calc(1.25rem+0.5rem)]"> {/* Adjust margin to align with input after label */}
+        <Button type="submit" disabled={isLoading} className="w-full sm:w-auto h-12 mt-2 sm:mt-[calc(1.25rem+0.75rem)] text-base"> {/* Adjusted margin for label */}
           <Search className="mr-2 h-5 w-5" />
           {isLoading ? "Fetching..." : "Get Insights"}
         </Button>
