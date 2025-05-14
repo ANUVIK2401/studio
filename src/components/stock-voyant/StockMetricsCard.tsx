@@ -1,3 +1,4 @@
+
 import type { StockData } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, Minus, DollarSign, BarChart3, Info, ArrowUpCircle, ArrowDownCircle, HelpCircle } from "lucide-react";
@@ -13,14 +14,15 @@ const MetricItem: React.FC<{ label: string, value: string | number | undefined, 
   <TooltipProvider delayDuration={100}>
     <Tooltip>
       <TooltipTrigger asChild>
-        <div className="flex flex-col p-3 bg-secondary/50 rounded-lg shadow-sm hover:bg-secondary/70 transition-all duration-200 ease-in-out hover:shadow-md hover:-translate-y-0.5">
-          <div className="flex items-center text-sm text-muted-foreground mb-1">
-            {icon && <span className="mr-1.5 h-4 w-4">{icon}</span>}
+        <div className="flex flex-col p-4 bg-secondary/50 rounded-lg shadow-sm hover:bg-secondary/70 transition-all duration-200 ease-in-out hover:shadow-md hover:-translate-y-0.5">
+          <div className="flex items-center text-sm text-muted-foreground mb-1.5">
+            {icon && <span className="mr-2 h-4 w-4">{icon}</span>}
             {label}
-            {tooltip && <Info className="ml-1 h-3 w-3 text-muted-foreground/70" />}
+            {tooltip && <Info className="ml-1.5 h-3.5 w-3.5 text-muted-foreground/70" />}
           </div>
-          <div className={`text-xl font-semibold text-foreground ${valueClassName}`}>
-            {value !== undefined && value !== null && value !== "N/A" ? value : "N/A"} {value !== undefined && value !== null && value !== "N/A" && unit ? unit : ""}
+          <div className={`text-2xl font-semibold text-foreground ${valueClassName}`}>
+            {value !== undefined && value !== null && value !== "N/A" ? value : <span className="text-xl text-muted-foreground/80">N/A</span>}
+            {value !== undefined && value !== null && value !== "N/A" && unit ? <span className="text-lg ml-1">{unit}</span> : ""}
           </div>
         </div>
       </TooltipTrigger>
@@ -42,29 +44,29 @@ export function StockMetricsCard({ data }: StockMetricsCardProps) {
 
   return (
     <Card className="w-full shadow-xl bg-card/80 backdrop-blur-sm">
-      <CardHeader className="pb-4">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+      <CardHeader className="pb-5">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-2">
           <div>
-            <CardTitle className="text-3xl font-bold text-primary">{data.name} ({data.ticker})</CardTitle>
-            <CardDescription className="text-sm text-muted-foreground">
+            <CardTitle className="text-3xl lg:text-4xl font-bold text-primary">{data.name} ({data.ticker})</CardTitle>
+            <CardDescription className="text-sm text-muted-foreground mt-1">
               Last updated: {new Date(data.lastUpdated).toLocaleString()}
             </CardDescription>
           </div>
-          <div className="flex items-center gap-2 mt-3 sm:mt-0">
-             <span className={`text-3xl font-bold ${changeColorClass}`}>
+          <div className="flex flex-col items-start sm:items-end gap-1.5">
+             <span className={`text-4xl lg:text-5xl font-bold ${changeColorClass}`}>
               ${data.price.toFixed(2)}
             </span>
             <Badge 
-                className={`px-2.5 py-1.5 text-sm font-medium ${badgeVariantClass}`}
+                className={`px-3 py-1.5 text-base font-medium ${badgeVariantClass} self-start sm:self-auto`}
             >
-              {isPositiveChange ? <TrendingUp className="h-4 w-4 mr-1" /> : isNegativeChange ? <TrendingDown className="h-4 w-4 mr-1" /> : <Minus className="h-4 w-4 mr-1" />}
+              {isPositiveChange ? <TrendingUp className="h-5 w-5 mr-1.5" /> : isNegativeChange ? <TrendingDown className="h-5 w-5 mr-1.5" /> : <Minus className="h-5 w-5 mr-1.5" />}
               {data.change.toFixed(2)} ({data.changePercent.toFixed(2)}%)
             </Badge>
           </div>
         </div>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
           <MetricItem label="Market Cap" value={data.marketCap} icon={<DollarSign />} tooltip="Total market value of a company's outstanding shares." />
           <MetricItem label="Volume" value={data.volume?.toLocaleString()} icon={<BarChart3 />} tooltip="Number of shares traded during the latest trading day." />
           <MetricItem label="P/E Ratio" value={data.peRatio ?? "N/A"} icon={<HelpCircle />} tooltip="Price-to-Earnings ratio (Current stock price / Earnings per share)." />
