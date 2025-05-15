@@ -7,18 +7,26 @@ export interface StockData {
   price: number;
   change: number;
   changePercent: number;
-  marketCap: string;
-  volume: string;
-  peRatio?: number | string; // Can be N/A
-  eps?: number | string; // Can be N/A
-  week52High: number;
-  week52Low: number;
-  lastUpdated: string;
+  marketCap: string; // Will be formatted (e.g., "2.5T")
+  volume: string; // Will be formatted (e.g., "60.5M")
+  peRatio?: number | string; // Can be N/A from API
+  eps?: number | string; // Can be N/A from API
+  week52High?: number; // Can be N/A from API
+  week52Low?: number; // Can be N/A from API
+  lastUpdated: string; // ISO string date or a descriptive string like "Live"
+  previousClose?: number;
+  openPrice?: number;
+  dayHigh?: number;
+  dayLow?: number;
 }
 
 export interface HistoricalDataPoint {
-  date: string; // e.g., 'YYYY-MM-DD'
+  date: string; // 'YYYY-MM-DD'
   price: number;
+  open: number;
+  high: number;
+  low: number;
+  volume: number;
 }
 
 export interface NewsArticle {
@@ -30,14 +38,14 @@ export interface NewsArticle {
   publishedAt: string; // ISO string
   summary?: string; // AI generated for individual article
   imageUrl?: string;
-  sentiment?: Sentiment; // Added sentiment
+  sentiment?: Sentiment;
 }
 
 export interface StockVoyantData {
   stockData: StockData;
   historicalData: HistoricalDataPoint[];
   newsArticles: NewsArticle[];
-  financialSummary?: string; // AI-generated summary based on 1-month news
+  financialSummary?: string;
 }
 
 export type ServerActionResponse = {
