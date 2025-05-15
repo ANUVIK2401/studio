@@ -26,54 +26,38 @@ export function HistoricalChart({ data, ticker }: HistoricalChartProps) {
     return (
       <Card className="w-full shadow-xl mt-8 bg-card/80 backdrop-blur-sm border-border/50 card-interactive-lift">
         <CardHeader>
-          <CardTitle className="text-2xl font-semibold text-foreground/90">Historical Performance: {ticker}</CardTitle>
-          <CardDescription>1 Year Price History</CardDescription>
+          <CardTitle className="text-xl font-semibold text-foreground/90">Historical Performance: {ticker}</CardTitle>
+          <CardDescription>Recent Price History</CardDescription>
         </CardHeader>
         <CardContent className="h-[400px] flex items-center justify-center">
-          <p className="text-muted-foreground">Insufficient historical data available to display trend.</p>
+          <p className="text-muted-foreground">Insufficient historical data to display trend for {ticker}.</p>
         </CardContent>
       </Card>
     );
   }
   
   const formattedData = data
-    .filter(point => point.date && !isNaN(point.price)) // Ensure valid date and price
-    .map(point => {
-      let dateObj;
-      try {
-        dateObj = parseISO(point.date); // Alpha Vantage dates are YYYY-MM-DD
-        if (!isValid(dateObj)) throw new Error("Invalid date");
-      } catch (e) {
-        console.warn(`Invalid date encountered in historical data: ${point.date} for ${ticker}`);
-        return null; // Skip this data point
-      }
-      return {
-        dateISO: point.date, 
-        dateFormatted: format(dateObj, 'MMM dd, yyyy'), 
-        price: point.price,
-        open: point.open,
-        high: point.high,
-        low: point.low,
-        volume: point.volume,
-      };
-    }).filter(Boolean) as (HistoricalDataPoint & { dateISO: string; dateFormatted: string; })[]; // Type assertion after filtering nulls
+    .filter(point => point.date && point.price !== undefined && point.price !== null && !isNaN(point.price) && isValid(parseISO(point.date)))
+    .map(point => ({
+        ...point,
+        dateISO: point.date, // Keep original ISO for XAxis key and reliable parsing
+        dateFormatted: format(parseISO(point.date), 'MMM dd, yyyy'), // For tooltip display
+    })) as (HistoricalDataPoint & { dateISO: string; dateFormatted: string; })[];
 
 
   if (formattedData.length < 2) {
-    // Handle case where after filtering, not enough data remains
      return (
       <Card className="w-full shadow-xl mt-8 bg-card/80 backdrop-blur-sm border-border/50 card-interactive-lift">
         <CardHeader>
-          <CardTitle className="text-2xl font-semibold text-foreground/90">Historical Performance: {ticker}</CardTitle>
-          <CardDescription>1 Year Price History</CardDescription>
+          <CardTitle className="text-xl font-semibold text-foreground/90">Historical Performance: {ticker}</CardTitle>
+          <CardDescription>Recent Price History</CardDescription>
         </CardHeader>
         <CardContent className="h-[400px] flex items-center justify-center">
-          <p className="text-muted-foreground">Not enough valid historical data points to display trend after processing.</p>
+          <p className="text-muted-foreground">Not enough valid historical data points for {ticker} to display trend after processing.</p>
         </CardContent>
       </Card>
     );
   }
-
 
   const startPrice = formattedData[0].price;
   const currentPrice = formattedData[formattedData.length - 1].price;
@@ -99,7 +83,7 @@ export function HistoricalChart({ data, ticker }: HistoricalChartProps) {
   return (
     <Card className="w-full shadow-xl mt-8 bg-card/80 backdrop-blur-sm border-border/50 card-interactive-lift">
       <CardHeader className="px-5 pt-5 pb-3">
-        <CardTitle className="text-2xl font-semibold text-foreground/90">Historical Performance: {ticker}</CardTitle>
+        <CardTitle className="text-xl font-semibold text-foreground/90">Historical Performance: {ticker}</CardTitle>
         <CardDescription>Recent Price History</CardDescription>
       </CardHeader>
       <CardContent className="h-[400px] p-0 pt-4 pr-4 pb-2">
@@ -116,12 +100,13 @@ export function HistoricalChart({ data, ticker }: HistoricalChartProps) {
             >
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
               <XAxis 
-                dataKey="dateISO"
+                dataKey="dateISO" // Use original ISO date string for reliable keying
                 tickFormatter={(isoDate) => {
                     try {
-                        return format(parseISO(isoDate), 'MMM yy');
+                        const dateObj = parseISO(isoDate);
+                        return isValid(dateObj) ? format(dateObj, 'MMM yy') : isoDate;
                     } catch (e) {
-                        return isoDate; 
+                        return isoDate; // Fallback for safety
                     }
                 }}
                 tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} 
@@ -143,10 +128,17 @@ export function HistoricalChart({ data, ticker }: HistoricalChartProps) {
                             className="bg-card/90 backdrop-blur-md shadow-xl border-border/70 rounded-lg"
                             indicator="line" 
                             labelFormatter={(value, payload) => { 
+                                // Use pre-formatted date from payload if available
                                 if (payload && payload.length > 0 && payload[0].payload.dateFormatted) {
                                     return payload[0].payload.dateFormatted;
                                 }
-                                return value;
+                                // Fallback for safety, though dateFormatted should always be there
+                                try {
+                                  const dateObj = parseISO(value);
+                                  return isValid(dateObj) ? format(dateObj, 'MMM dd, yyyy') : value;
+                                } catch {
+                                  return value;
+                                }
                             }}
                             formatter={(value, name, props) => {
                               const pointData = props.payload as any;
@@ -158,39 +150,39 @@ export function HistoricalChart({ data, ticker }: HistoricalChartProps) {
                               
                               return (
                                 <div className="flex flex-col gap-0.5">
-                                  <span style={{ color: performanceColor, fontWeight: 'bold' }}>
+                                  <span style={{ color: chartConfig.price.color, fontWeight: 'bold' }}>
                                     {chartConfig.price.label}: ${Number(price).toFixed(2)}
                                   </span>
-                                  <span>Open: ${Number(open).toFixed(2)}</span>
-                                  <span>High: ${Number(high).toFixed(2)}</span>
-                                  <span>Low: ${Number(low).toFixed(2)}</span>
-                                  <span>Volume: {Number(volume).toLocaleString()}</span>
+                                  {open !== undefined && <span>Open: ${Number(open).toFixed(2)}</span>}
+                                  {high !== undefined && <span>High: ${Number(high).toFixed(2)}</span>}
+                                  {low !== undefined && <span>Low: ${Number(low).toFixed(2)}</span>}
+                                  {volume !== undefined && <span>Volume: {Number(volume).toLocaleString()}</span>}
                                 </div>
                               );
                             }}
-                            itemStyle={{ color: performanceColor }} 
+                            itemStyle={{ color: chartConfig.price.color }} 
                             labelStyle={{ color: 'hsl(var(--foreground))', fontWeight: '600' }}
                             />}
               />
               <Legend 
                 verticalAlign="top"
                 wrapperStyle={{ 
-                  color: performanceColor, 
+                  color: chartConfig.price.color, 
                   paddingBottom: '20px', 
                   fontSize: '14px',
                   fontWeight: '500'
                 }} 
-                payload={[{ value: chartConfig.price.label, type: 'line', id: 'price', color: performanceColor }]}
+                payload={[{ value: chartConfig.price.label, type: 'line', id: 'price', color: chartConfig.price.color }]}
               />
               <Line
                 type="monotone"
                 dataKey="price"
-                stroke={performanceColor}
+                stroke={chartConfig.price.color}
                 strokeWidth={2.5}
                 dot={false} 
                 activeDot={{ 
                   r: 7, 
-                  fill: performanceColor, 
+                  fill: chartConfig.price.color, 
                   stroke: 'hsl(var(--background))',
                   strokeWidth: 2.5,
                   cursor: 'pointer'
@@ -204,3 +196,5 @@ export function HistoricalChart({ data, ticker }: HistoricalChartProps) {
     </Card>
   );
 }
+
+    
