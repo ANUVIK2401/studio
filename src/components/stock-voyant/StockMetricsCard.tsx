@@ -15,18 +15,18 @@ const MetricItem: React.FC<{ label: string, value: string | number | undefined, 
     <Tooltip>
       <TooltipTrigger asChild>
         <div className="flex flex-col p-4 bg-secondary/60 rounded-lg shadow-md hover:bg-secondary/80 transition-all duration-300 ease-out hover:shadow-xl hover:scale-[1.03] hover:-translate-y-1 cursor-default">
-          <div className="flex items-center text-xs text-muted-foreground mb-1.5">
-            {icon && <span className="mr-1.5 h-3.5 w-3.5">{icon}</span>}
+          <div className="flex items-center text-xs text-muted-foreground mb-2"> {/* Increased mb-1.5 to mb-2 */}
+            {icon && <span className="mr-2 h-4 w-4">{icon}</span>} {/* Increased icon size slightly and mr-1.5 to mr-2 */}
             {label}
-            {tooltip && <Info className="ml-1 h-3 w-3 text-muted-foreground/70" />}
+            {tooltip && <Info className="ml-1.5 h-3.5 w-3.5 text-muted-foreground/70" />} {/* Increased icon size and ml-1 to ml-1.5 */}
           </div>
           <div className={`text-xl lg:text-2xl font-semibold text-foreground ${valueClassName}`}>
             {value !== undefined && value !== null && value !== "N/A" && String(value).trim() !== "" ? value : <span className="text-lg font-normal text-muted-foreground/80">N/A</span>}
-            {value !== undefined && value !== null && value !== "N/A" && String(value).trim() !== "" && unit ? <span className="text-base ml-0.5">{unit}</span> : ""}
+            {value !== undefined && value !== null && value !== "N/A" && String(value).trim() !== "" && unit ? <span className="text-base ml-1">{unit}</span> : ""} {/* Increased ml-0.5 to ml-1 */}
           </div>
         </div>
       </TooltipTrigger>
-      {tooltip && <TooltipContent side="top"><p className="text-xs">{tooltip}</p></TooltipContent>}
+      {tooltip && <TooltipContent side="top"><p className="text-xs max-w-xs">{tooltip}</p></TooltipContent>}
     </Tooltip>
   </TooltipProvider>
 );
@@ -44,7 +44,7 @@ export function StockMetricsCard({ data }: StockMetricsCardProps) {
   const lastUpdatedDate = new Date(data.lastUpdated);
   const formattedLastUpdated = !isNaN(lastUpdatedDate.getTime()) 
     ? lastUpdatedDate.toLocaleString() 
-    : data.lastUpdated; // Show raw string if date is invalid
+    : data.lastUpdated; 
 
 
   return (
@@ -73,7 +73,7 @@ export function StockMetricsCard({ data }: StockMetricsCardProps) {
         </div>
       </CardHeader>
       <CardContent className="px-5 pb-5">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 lg:gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5 lg:gap-6"> {/* Increased gap from gap-4 lg:gap-5 */}
           <MetricItem label="Market Cap" value={data.marketCap} icon={<Landmark />} tooltip="Total market value of a company's outstanding shares." />
           <MetricItem label="Volume" value={data.volume} icon={<BarChart3 />} tooltip="Number of shares traded during the latest trading day." />
           <MetricItem label="P/E Ratio" value={data.peRatio} icon={<HelpCircle />} tooltip="Price-to-Earnings ratio (Current stock price / Earnings per share)." />
@@ -91,3 +91,4 @@ export function StockMetricsCard({ data }: StockMetricsCardProps) {
     </Card>
   );
 }
+
