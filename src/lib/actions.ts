@@ -46,8 +46,7 @@ function formatLargeNumber(num: number | string | undefined): string {
   if (Math.abs(numericValue) >= 1e6) {
     return (numericValue / 1e6).toFixed(2) + "M";
   }
-  // Removed K for clearer large number distinction, adjust if K is desired for smaller large numbers
-  return numericValue.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 }); // Format with commas
+  return numericValue.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 }
 
 
@@ -58,7 +57,6 @@ async function fetchAlphaVantageData(ticker: string): Promise<{ data: StockData,
   }
 
   try {
-    // Fetch all data concurrently
     const [quoteResponse, overviewResponse, dailyResponse] = await Promise.allSettled([
       alphaVantage.data.quote(ticker),
       alphaVantage.company.overview(ticker),
@@ -66,31 +64,36 @@ async function fetchAlphaVantageData(ticker: string): Promise<{ data: StockData,
     ]);
 
     // Process Quote Data
-    if (quoteResponse.status === 'rejected' || !quoteResponse.value || !quoteResponse.value['Global Quote'] || Object.keys(quoteResponse.value['Global Quote']).length === 0) {
-      console.error(`Alpha Vantage: No quote data for ${ticker}`, quoteResponse.status === 'rejected' ? quoteResponse.reason : quoteResponse.value);
-      throw new Error(`No current quote data found for ${ticker}. It might be an invalid symbol, delisted, or an API issue.`);
+    if (quoteResponse.status === 'rejected' || !quoteResponse.value || typeof quoteResponse.value !== 'object' || !quoteResponse.value['Global Quote'] || Object.keys(quoteResponse.value['Global Quote']).length === 0) {
+      const reason = quoteResponse.status === 'rejected' ? quoteResponse.reason : 'Invalid quote data structure';
+      console.error(`Alpha Vantage: No quote data for ${ticker}`, reason, quoteResponse.status === 'fulfilled' ? quoteResponse.value : '');
+      throw new Error(`No current quote data found for ${ticker}. It might be an invalid symbol, delisted, or an API issue (e.g., rate limit, invalid key).`);
     }
     const q = quoteResponse.value['Global Quote'];
 
-    // Process Overview Data (optional, can proceed without it)
+    // Process Overview Data
     let o: any = {};
-    if (overviewResponse.status === 'fulfilled' && overviewResponse.value && overviewResponse.value.Symbol) {
+    if (overviewResponse.status === 'fulfilled' && overviewResponse.value && typeof overviewResponse.value === 'object' && overviewResponse.value.Symbol) {
       o = overviewResponse.value;
     } else {
-      console.warn(`Alpha Vantage: No complete overview data for ${ticker}. Some metrics will be N/A.`, overviewResponse.status === 'rejected' ? overviewResponse.reason : overviewResponse.value);
+      const reason = overviewResponse.status === 'rejected' ? overviewResponse.reason : 'Invalid overview data structure';
+      const value = overviewResponse.status === 'fulfilled' ? overviewResponse.value : null;
+      console.warn(`Alpha Vantage: Company overview data for ${ticker} is incomplete or unavailable. Some metrics will be N/A. Status: ${overviewResponse.status}, Reason: ${reason}, Value: ${JSON.stringify(value)}`);
+      // 'o' remains {}, this is acceptable, StockData will have N/A for these fields
     }
 
     // Process Daily Data
-    if (dailyResponse.status === 'rejected' || !dailyResponse.value || !dailyResponse.value['Time Series (Daily)'] || Object.keys(dailyResponse.value['Time Series (Daily)']).length === 0) {
-      console.error(`Alpha Vantage: No historical data for ${ticker}`, dailyResponse.status === 'rejected' ? dailyResponse.reason : dailyResponse.value);
-      throw new Error(`No historical price data found for ${ticker}. Check the symbol or API limits.`);
+    if (dailyResponse.status === 'rejected' || !dailyResponse.value || typeof dailyResponse.value !== 'object' || !dailyResponse.value['Time Series (Daily)'] || Object.keys(dailyResponse.value['Time Series (Daily)']).length === 0) {
+      const reason = dailyResponse.status === 'rejected' ? dailyResponse.reason : 'Invalid historical data structure';
+      console.error(`Alpha Vantage: No historical data for ${ticker}`, reason, dailyResponse.status === 'fulfilled' ? dailyResponse.value : '');
+      throw new Error(`No historical price data found for ${ticker}. Check the symbol or API limits/key.`);
     }
     const timeSeries = dailyResponse.value['Time Series (Daily)'];
 
     const stockData: StockData = {
       ticker: o.Symbol || ticker.toUpperCase(),
       name: o.Name || `${ticker.toUpperCase()} (Name N/A)`,
-      price: safeParseFloat(q['05. price']) ?? 0, // Default to 0 if undefined, consider better handling
+      price: safeParseFloat(q['05. price']) ?? 0,
       change: safeParseFloat(q['09. change']) ?? 0,
       changePercent: safeParseFloat(q['10. change percent']?.replace('%', '')) ?? 0,
       marketCap: formatLargeNumber(o.MarketCapitalization),
@@ -108,29 +111,26 @@ async function fetchAlphaVantageData(ticker: string): Promise<{ data: StockData,
 
     const historical: HistoricalDataPoint[] = Object.entries(timeSeries)
       .map(([date, values]: [string, any]) => {
-        if (!isValid(parseISO(date))) return null; // Skip invalid dates
+        if (!isValid(parseISO(date)) || typeof values !== 'object' || values === null) return null;
         return {
           date: date,
-          price: safeParseFloat(values['4. close']) ?? 0, // Default to 0 if parsing fails
+          price: safeParseFloat(values['4. close']) ?? 0,
           open: safeParseFloat(values['1. open']) ?? 0,
           high: safeParseFloat(values['2. high']) ?? 0,
           low: safeParseFloat(values['3. low']) ?? 0,
           volume: safeParseInt(values['6. volume'] || values['5. volume']) ?? 0,
         };
       })
-      .filter(Boolean) as HistoricalDataPoint[]; // Remove nulls
+      .filter(Boolean) as HistoricalDataPoint[];
       
-    historical.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()); // Ensure ascending order
+    historical.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     const finalHistorical = historical.slice(-365); 
       
-    if (finalHistorical.length === 0 && historical.length > 0) { // If slicing results in empty but original had data
+    if (finalHistorical.length === 0 && historical.length > 0) {
         console.warn(`Historical data for ${ticker} was present but resulted in empty after slicing for 365 days. Using all available sorted data.`);
-        // Potentially use 'historical' directly if this case is problematic, or adjust slicing logic
     }
     if (finalHistorical.length === 0) {
         console.warn(`No usable historical price data processed for ${ticker} after filtering and sorting.`);
-        // Decide if this should be a hard error or proceed with empty historical array
-        // For now, we allow proceeding, chart component will handle empty state.
     }
 
     return { data: stockData, historical: finalHistorical };
@@ -162,32 +162,32 @@ async function fetchRealNews(companyName: string, ticker: string): Promise<NewsA
     const response = await newsapi.v2.everything({
       q: `"${companyName}" OR ${ticker} stock`,
       from: formatISO(thirtyDaysAgo, { representation: 'date' }),
-      sortBy: 'relevancy',
+      sortBy: 'relevancy', // 'publishedAt' might be better for "latest"
       language: 'en',
-      pageSize: 15, // Fetch more initially, then slice
+      pageSize: 15, 
     });
 
     if (response.status === "ok" && response.articles) {
       return response.articles
-        .filter(article => article.title && article.title !== "[Removed]" && article.url && article.content) // Ensure basic fields exist
-        .slice(0, 6) // Limit to 6 articles for display/processing
+        .filter(article => article.title && article.title !== "[Removed]" && article.url && (article.content || article.description))
+        .slice(0, 6)
         .map((article, index) => ({
-          id: `${ticker}-news-${article.source?.id || 'api'}-${index}-${new Date(article.publishedAt || Date.now()).getTime()}`, // More unique ID
-          title: article.title!, // We filtered for this
+          id: `${ticker}-news-${article.source?.id || 'api'}-${index}-${new Date(article.publishedAt || Date.now()).getTime()}`,
+          title: article.title!,
           source: article.source?.name || "Unknown Source",
-          articleUrl: article.url!, // We filtered for this
-          articleContent: article.content! || article.description || "No Content Available", // Prioritize content
+          articleUrl: article.url!,
+          articleContent: (article.content || article.description || "No Content Available").substring(0, 25000), // Truncate for AI
           publishedAt: article.publishedAt && isValid(new Date(article.publishedAt)) ? new Date(article.publishedAt).toISOString() : new Date().toISOString(),
           imageUrl: article.urlToImage || `https://placehold.co/300x200.png?text=${encodeURIComponent(ticker)}+News`,
           sentiment: "Unknown" as Sentiment,
         }));
     } else {
-      console.error("NewsAPI error:", response);
+      console.error("NewsAPI error:", response.message || response.code || "Unknown error");
       return MOCK_NEWS_FALLBACK[ticker.toUpperCase()] || [];
     }
   } catch (error) {
     console.error(`Failed to fetch real news for ${ticker} (${companyName}):`, error);
-    return MOCK_NEWS_FALLBACK[ticker.toUpperCase()] || []; // Fallback on any error
+    return MOCK_NEWS_FALLBACK[ticker.toUpperCase()] || [];
   }
 }
 
@@ -221,17 +221,17 @@ export async function fetchStockDataAndNews(ticker: string): Promise<ServerActio
       if (!SUPPORTED_TICKERS_FOR_FALLBACK.includes(upperTicker)) {
         return { error: `Ticker ${upperTicker} not supported with current AlphaVantage fallback. Try AAPL, GOOGL, or MSFT if main API fails.` };
       }
-      stockDetails = { // Minimal mock structure
+      stockDetails = { 
         data: {
             ticker: upperTicker,
-            name: `${upperTicker} (Mock Data - API Error)`,
+            name: `${upperTicker} (Mock Data - API Error/Unavailable)`,
             price: 100 + Math.random() * 50,
             change: (Math.random() - 0.5) * 10,
             changePercent: (Math.random() - 0.5) * 2,
-            marketCap: "1T", // Mock formatted
-            volume: "10M", // Mock formatted
+            marketCap: "1T", 
+            volume: "10M", 
             lastUpdated: new Date().toISOString(),
-            peRatio: "N/A", eps: "N/A" // Add all fields from StockData type
+            peRatio: "N/A", eps: "N/A", week52High: 180, week52Low: 90, previousClose: 99, openPrice: 101, dayHigh: 102, dayLow: 98,
         },
         historical: Array.from({ length: 30 }, (_, i) => {
             const date = subDays(new Date(), 30 - 1 - i);
@@ -268,19 +268,22 @@ export async function fetchStockDataAndNews(ticker: string): Promise<ServerActio
         const sortedHistorical = [...stockDetails.historical].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
         
         const oneYearAgoDate = startOfDay(subYears(new Date(), 1));
-        let closestToYearAgo = sortedHistorical.find(p => parseISO(p.date) <= oneYearAgoDate);
-        if (!closestToYearAgo && sortedHistorical.length > 0) closestToYearAgo = sortedHistorical[0]; // Fallback to earliest if all data is within 1 year
+        let closestToYearAgo = sortedHistorical.find(p => isValid(parseISO(p.date)) && parseISO(p.date) <= oneYearAgoDate);
+        if (!closestToYearAgo && sortedHistorical.length > 0) closestToYearAgo = sortedHistorical[0];
 
         yearStartPrice = closestToYearAgo?.price;
         yearEndPrice = sortedHistorical[sortedHistorical.length - 1]?.price; 
         
-        const relevantHistoricalData = sortedHistorical.filter(p => isValid(parseISO(p.date)) && differenceInDays(new Date(), parseISO(p.date)) <= 365);
+        const relevantHistoricalData = sortedHistorical.filter(p => isValid(parseISO(p.date)) && differenceInDays(new Date(), parseISO(p.date)) <= 365 && p.price !== undefined && !isNaN(p.price));
         if (relevantHistoricalData.length > 0) {
-            yearHigh = Math.max(...relevantHistoricalData.map(p => p.price).filter(p => p !== undefined && !isNaN(p) ) as number[]);
-            yearLow = Math.min(...relevantHistoricalData.map(p => p.price).filter(p => p !== undefined && !isNaN(p) ) as number[]);
-        } else if (sortedHistorical.length > 0) {
-            yearHigh = Math.max(...sortedHistorical.map(p => p.price).filter(p => p !== undefined && !isNaN(p)) as number[]);
-            yearLow = Math.min(...sortedHistorical.map(p => p.price).filter(p => p !== undefined && !isNaN(p)) as number[]);
+            yearHigh = Math.max(...relevantHistoricalData.map(p => p.price));
+            yearLow = Math.min(...relevantHistoricalData.map(p => p.price));
+        } else if (sortedHistorical.length > 0) { // Fallback if no data within last 365 days but some historical data exists
+            const allPrices = sortedHistorical.map(p => p.price).filter(p => p !== undefined && !isNaN(p)) as number[];
+            if(allPrices.length > 0) {
+                yearHigh = Math.max(...allPrices);
+                yearLow = Math.min(...allPrices);
+            }
         }
     }
     
@@ -306,13 +309,12 @@ export async function fetchStockDataAndNews(ticker: string): Promise<ServerActio
     }
 
     const processedArticlesForDisplay: NewsArticle[] = [];
-    // Use Promise.allSettled to ensure all articles are processed even if some fail
     const articleProcessingResults = await Promise.allSettled(
         fetchedNewsArticles.slice(0, 6).map(async (article) => {
             let summarizedArticle = { ...article, summary: "AI summary currently unavailable.", sentiment: "Unknown" as Sentiment };
             try {
-                const contentForSummary = article.articleContent ? article.articleContent.substring(0, 15000) : ""; // Increased limit, ensure content exists
-                const contentForSentiment = article.articleContent ? article.articleContent.substring(0, 5000) : ""; // Ensure content exists
+                const contentForSummary = article.articleContent ? article.articleContent.substring(0, 15000) : "";
+                const contentForSentiment = article.articleContent ? article.articleContent.substring(0, 5000) : "";
 
                 const [summaryResult, sentimentResult] = await Promise.allSettled([
                     summarizeNewsArticle({
@@ -359,26 +361,24 @@ export async function fetchStockDataAndNews(ticker: string): Promise<ServerActio
 
   } catch (error: any) {
     console.error(`Critical error in fetchStockDataAndNews for ${upperTicker}:`, error);
-    let errorMessage = `An unexpected error occurred while fetching data for ${upperTicker}. Please try again.`;
+    let displayErrorMessage = `An unexpected error occurred while fetching data for ${upperTicker}. Please try again.`;
+    
     if (error instanceof Error) {
-        errorMessage = error.message; // Use the error message directly as it might be specific from AlphaVantage
+      if (error.message && error.message.toLowerCase().includes("cannot read properties of undefined (reading 'overview')")) {
+        displayErrorMessage = `Failed to retrieve company overview from Alpha Vantage for ${upperTicker}. This often indicates an issue with the Alpha Vantage API key (e.g., invalid, expired, or daily limit exceeded for overview data) or an unsupported ticker for this specific data point. Please check your API key and try again later.`;
+      } else if (error.message && (error.message.includes("higher FREQUENCY") || error.message.toLowerCase().includes("api call frequency"))) {
+        displayErrorMessage = `Alpha Vantage API rate limit hit for ${upperTicker}. Please wait and try again. (The free tier is limited to 25 requests per day).`;
+      } else if (error.message && error.message.includes("Invalid API call") && error.message.includes("premium endpoint")) {
+        displayErrorMessage = `Alpha Vantage API error for ${upperTicker}: This might be a premium endpoint or an issue with the symbol. Please check your API plan and symbol.`;
+      } else if (error.message && (error.message.includes("No current quote data found") || error.message.includes("No historical price data found"))) {
+        displayErrorMessage = error.message; // Use these specific messages
+      } else {
+        displayErrorMessage = error.message; // Default to the error's message if more specific
+      }
     } else if (typeof error === 'string') {
-        errorMessage = error;
+      displayErrorMessage = error;
     }
     
-    // Redundant Alpha Vantage specific checks (already inside fetchAlphaVantageData), but as a final catch-all
-    if (typeof errorMessage === 'string') {
-        if (errorMessage.includes("Our standard API call frequency is 5 calls per minute and 100 calls per day") || errorMessage.includes("higher FREQUENCY")) {
-            errorMessage = `Alpha Vantage API rate limit hit for ${upperTicker}. Please wait and try again or consider a premium plan for higher limits. (Free tier is limited).`;
-        } else if (errorMessage.includes("Invalid API call") && errorMessage.includes("premium endpoint")) {
-            errorMessage = `Alpha Vantage API error for ${upperTicker}: This might be a premium endpoint or an issue with the symbol. Please check your API plan and symbol.`;
-        } else if (errorMessage.includes("No current quote data found") || errorMessage.includes("No historical price data found")) {
-            // Keep these more specific messages.
-        }
-    }
-
-    return { error: errorMessage };
+    return { error: displayErrorMessage };
   }
 }
-
-    
