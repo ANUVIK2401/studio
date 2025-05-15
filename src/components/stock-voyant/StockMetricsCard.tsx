@@ -1,7 +1,7 @@
 
 import type { StockData } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, Minus, DollarSign, BarChart3, Info, ArrowUpCircle, ArrowDownCircle, HelpCircle, CalendarClock, OpeningBell, Landmark, ArrowRightLeft } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, BarChart3, Info, ArrowUpCircle, ArrowDownCircle, HelpCircle, CalendarClock, Bell, Landmark, ArrowRightLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -20,7 +20,7 @@ const MetricItem: React.FC<{ label: string, value: string | number | undefined, 
             {label}
             {tooltip && <Info className="ml-1 h-3 w-3 text-muted-foreground/70" />}
           </div>
-          <div className={`text-xl font-semibold text-foreground ${valueClassName}`}>
+          <div className={`text-xl lg:text-2xl font-semibold text-foreground ${valueClassName}`}>
             {value !== undefined && value !== null && value !== "N/A" && String(value).trim() !== "" ? value : <span className="text-lg font-normal text-muted-foreground/80">N/A</span>}
             {value !== undefined && value !== null && value !== "N/A" && String(value).trim() !== "" && unit ? <span className="text-base ml-0.5">{unit}</span> : ""}
           </div>
@@ -73,13 +73,13 @@ export function StockMetricsCard({ data }: StockMetricsCardProps) {
         </div>
       </CardHeader>
       <CardContent className="px-5 pb-5">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 lg:gap-5">
           <MetricItem label="Market Cap" value={data.marketCap} icon={<Landmark />} tooltip="Total market value of a company's outstanding shares." />
           <MetricItem label="Volume" value={data.volume} icon={<BarChart3 />} tooltip="Number of shares traded during the latest trading day." />
           <MetricItem label="P/E Ratio" value={data.peRatio} icon={<HelpCircle />} tooltip="Price-to-Earnings ratio (Current stock price / Earnings per share)." />
           <MetricItem label="EPS" value={data.eps} icon={<HelpCircle />} unit="$" tooltip="Earnings Per Share (Portion of a company's profit allocated to each outstanding share of common stock)." />
           
-          <MetricItem label="Day's Open" value={data.openPrice?.toFixed(2)} icon={<OpeningBell />} unit="$" tooltip="The price at which the stock first traded upon the opening of an exchange on a trading day."/>
+          <MetricItem label="Day's Open" value={data.openPrice?.toFixed(2)} icon={<Bell />} unit="$" tooltip="The price at which the stock first traded upon the opening of an exchange on a trading day."/>
           <MetricItem label="Day's High" value={data.dayHigh?.toFixed(2)} icon={<ArrowUpCircle />} unit="$" tooltip="Highest price at which the stock traded during the day." valueClassName="text-[hsl(var(--chart-positive))]/90" />
           <MetricItem label="Day's Low" value={data.dayLow?.toFixed(2)} icon={<ArrowDownCircle />} unit="$" tooltip="Lowest price at which the stock traded during the day." valueClassName="text-[hsl(var(--chart-negative))]/90"/>
           <MetricItem label="Prev. Close" value={data.previousClose?.toFixed(2)} icon={<ArrowRightLeft />} unit="$" tooltip="The stock's closing price on the preceding trading day."/>
